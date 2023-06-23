@@ -1,0 +1,75 @@
+#ytDownloader {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000000;
+}
+
+#ytDownloader .button {
+    display: flex;
+    justify-content: center !important;
+    flex-wrap: wrap;
+    flex-direction: column;
+    margin: 40px 0;
+}
+
+#ytFlex {
+    align-items: center;
+    background-color: #000;
+    color: #ccc;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+    left: 0;
+    margin: 0px !important;
+    padding: 0px !important;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: -10;
+}
+
+#ytLog {
+    align-items: flex-start;
+    border: 2px solid #ff9100;
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column-reverse;
+    height: 250px;
+    width: 80%;
+}
+
+.yt-log-heading {
+    font-size: 19px;
+    font-family: sans-serif;
+    color: #ff9100;
+}
+
+.yt-dl:hover {
+    background-color: #3b0000 !important;
+}
+
+.yt-header {
+    height: 50px;
+    font-size: 36px;
+    margin-bottom: 40px;
+}
+
+.yt-info {
+    font-size: 12px;
+    color: #8f8f8f;
+    margin: 5px 0;
+}
+
+.yt-input {
+    background-color: #3b0000 !important;
+    border: 2px solid #ff9100;
+    color: #ff9100;
+    font-size: 18px;
+    min-width: 350px;
+    padding: 7px 10px;
+    width: 450px;
+}

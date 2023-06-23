@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Music Video Player</title>
+        <script src="assets/font/d40a0f0b1f.js"></script>
+        <link rel="stylesheet" href="assets/font/css2.css">
+
+        <link rel="shortcut icon" href="favicon.png" type="image/png">
+        <link rel="stylesheet" href="css/main.css">
+
+        <link rel="stylesheet" href="css/list.css">
+        <link rel="stylesheet" href="css/mainPageButtons.css">
+        <link rel="stylesheet" href="css/popup.css">
+        <link rel="stylesheet" href="css/table.css">
+        <link rel="stylesheet" href="css/video.css">
+        <link rel="stylesheet" href="css/yt-dl.css">
+
+
+        <script src="js/miscFunctions.js"></script>
+
+        <script src="js/classes/App.js"></script>
+        <script src="js/vars.js"></script>
+
+        <script defer src="js/init.js"></script>
+    </head>
+    <body>
+        <div id="header"><h1><i class="fa-solid fa-music"></i><i class="fa-solid fa-video"><i class="fa-solid fa-play"></i></i><br/>Music Video Player</h1><br/><div id="version"></div></div>
+        <div id="buttons">
+            <div id="selectButtons">
+                <div class="button" onclick="vars.UI.checkAll()">SELECT ALL <i class="fa-solid fa-plus"></i></i></div>
+                <div class="button" onclick="vars.UI.checkAll(false)">SELECT NONE <i class="fa-solid fa-minus"></i></div>
+                <div class="button" onclick="vars.UI.checkInverse()">INVERT SELECTION</div>
+            </div>
+
+            <div id="playButtons">
+                <div id="shuffleButton" class="button" onpointerdown="vars.input.enableShuffleButton(false)" onpointerup="vars.App.shuffleMusicVideos(event,this)">RANDOMISE <i class="fa-solid fa-shuffle"></i></div>
+                <div class="button play-button" onclick="vV = vars.App.video;vV.show();vV.generatePlaylist();vV.playNext();">PLAY ALL <i class="fa-solid fa-play"></i><i class="fa-solid fa-expand"></i></div>
+                <div class="button play-button" onclick="vV = vars.App.video;vV.show();vV.playNext();">PLAY SELECTED <i class="fa-solid fa-play"></i></div>
+            </div>
+
+            <div id="youtubeButtons">
+                <div class="button yt-dl" onclick="vars.UI.showYTDownloader()">YOUTUBE DL <i class="fa-solid fa-download"></i></div>
+                <div id="searchListContainer" class="button">
+                    <div class="search-title">SEARCH <i class="fa-solid fa-magnifying-glass"></i></div>
+                    <div class="search-input-div"><input id="searchList" class="search-input" type="text" placeholder="search" onkeyup="vars.App.filterList();"></div>
+                </div>
+            </div>
+
+            <div id="otherButtons">
+                <div class="button remove-selected" onclick="vars.UI.showDeletePopUp()">REMOVE SELECTED<br/><span class="remove-selected-icons">🗋🡆🗑</span></div>
+            </div>
+        </div>
+        <div id="viewBy" onClick="vars.UI.switchView(event,this);">Current View: List</div>
+        <div id="container">
+            <div id="list"></div>
+            <div id="table" class="hidden">
+                <div class="column">A</div>
+                <div class="column">B</div>
+            </div>
+            <div id="videoContainer" class="hidden">
+            <video id="video" width="640" height="480" autoplay controls onended="vars.App.video.playNext()"></video>
+            <div id="videoOptions">
+                <div id="intro" class="button" onclick="vars.App.video.introEndSet()">INTRO END</div>
+                <div id="outro" class="button" onclick="vars.App.video.outroStartSet()">OUTRO START</div>
+            </div>
+            <div id="comingUp">
+                <div id="comingUpList"></div>
+            </div>
+            <div id="videoButtons">
+                <div id="videoNext" class="button" onclick="vars.App.video.playNext();">NEXT</div>
+                <div id="videoClose" class="button" onclick="vars.App.video.show(false);">CLOSE</div>
+            </div>
+        </div>
+
+
+        <div id="deletePopUp" class="hidden">
+            <div id="warningText" class="delete-warning">Are you sure you want to remove the selected files?<p>They will no longer show in the list!</div>
+                <div id="popupButtons">
+                    <div class="button ok" onclick="vars.App.addMusicVideosToIgnoreList();">YES</div><div class="button cancel" onclick="vars.UI.showDeletePopUp(false)">NO/CANCEL</div>
+                </div>
+            </div>
+        </div>
+            
+        <div id="musicVideoImages" class="hidden" onmouseenter="vars.UI.showChangeMVImageButton(false)"></div>
+        <div id="ytDownloader" class="hidden">
+            <div id="ytFlex">
+                <div class="yt-header">YOUTUBE DOWNLOADER</div>
+                <div class="yt-input-div"><input id="ytURL" class="yt-input" type="url" placeholder="Enter YouTube URL" onkeyup="vars.App.video.getYT(event, this)"></div>
+                <div class="yt-info">Press return after entering the URL to start the downloader</div>
+                <div class="button" onclick="vars.UI.showYTDownloader(false)">CLOSE</div>
+                <div class="yt-log-heading">LOG</div>
+                <div id="ytLog"></div>
+            </div>
+        </div>
+
+        <div id="nextMusicVideoImage" class="hidden" onclick="vars.App.showNextMVImage(event,this)"><i class="fa-solid fa-circle-arrow-right"></i></div>
+    </body>
+</html>

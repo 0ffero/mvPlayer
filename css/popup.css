@@ -1,0 +1,41 @@
+#deletePopUp {
+    align-items: center;
+    background-color: rgba(0,0,0,0.875);
+    color: #ccc;
+    display: flex;
+    height: 100vh;
+    flex-direction: column;
+    justify-content: space-evenly;
+    position: fixed;
+    top: 0;
+    width: 100vw;
+    z-index: -20;
+}
+#popupButtons {
+    display: flex;
+    width: 400px;
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: center;
+}
+#popupButtons .button {
+    transition: 500ms;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 17px;
+    width: 150px;
+}
+#popupButtons .button:hover {
+    border-radius: 0px;
+}
+#popupButtons .ok {
+    background-color: #3b793c;
+    border: 2px solid #30ff30;
+}
+#popupButtons .cancel {
+    background-color: #3b0000;
+    border: 2px solid #ff3030;
+}
+.delete-warning {
+    font-size: 20px;
+}

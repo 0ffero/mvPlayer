@@ -1,0 +1,37 @@
+#table {
+  display: flex;
+  flex-basis: 100%;
+  flex-direction: column;
+  flex-wrap: wrap;
+  font-size: 12px;
+  height: 100vh;
+  text-overflow: clip;
+  text-wrap: nowrap;
+}
+
+#table .column {
+  display: flex;
+  flex-basis: 100% !important;
+  flex: 1;
+  flex-wrap: wrap;
+  flex-direction: column;
+}
+
+#table .list-item {
+  align-content: center;
+  background-color: #272935;
+  border: 2px solid #252633;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  height: 26px;
+  margin: 1px;
+  padding: 2px 0 0 10px;
+}
+#table .list-item:hover {
+  background-color: #8badaf;
+}
+
+#table .item-selected {
+  border: 2px solid #ff9100;
+}

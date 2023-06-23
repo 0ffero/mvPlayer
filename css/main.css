@@ -1,0 +1,137 @@
+body { 
+    background-color: #2E303E;
+    color: #E7E9FA;
+    font-family: 'consolas';
+    font-size: 16px;
+    overflow-x: hidden;
+    margin: 0px;
+}
+h1 { 
+    color: #ff9100;
+    font-family: fantasy;
+    font-size: 34px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    -webkit-text-stroke-width: thin;
+    -webkit-text-stroke-color: #2E303E;
+}
+h1, h2 { 
+    text-shadow: 0px 0px 2px #b4b5b9;
+}
+h3 { 
+    background: linear-gradient(90deg, #1a2632 0%, #bed5ff 33%, #2b6996 66%, #d7e3e9 100%);
+    display: flex;
+    justify-content: flex-end;
+}
+
+a { color: #073652; font-size: 12px; }
+a:hover { color: deepskyblue; }
+
+/* PAGE STUFF */
+#container { display: flex; flex-flow: wrap;}
+#container div { padding: 5px; margin: 5px; }
+
+.fa-solid {
+    margin: 2px 0px 0px 15px;
+}
+
+/* HEADINGS */
+#header {
+    background-color: #009485;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+.heading {
+    outline-color: #3480b7;
+    outline-style: ridge;
+    padding: 4px;
+    outline-width: thick;
+}
+#version {
+    color: #2e303e;
+    font-size: 10px;
+    font-weight: bold;
+    margin-top: -45px;
+}
+/* END OF HEADINGS */
+
+#musicVideoImages {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+#nextMusicVideoImage {
+    background-color: #272935;
+    border: 2px solid #ff9100;
+    height: 64px;
+    right: 0px;
+    position: absolute;
+    top: 0px;
+    width: 64px;
+}
+.fa-circle-arrow-right {
+    color: #ff9100;
+    font-size: 42px;
+    left: -4px;
+    position: relative !important;
+    top: 9px;
+}
+
+.flex-image {
+    align-content: center;
+    background-color: #272935;
+    border: 2px solid #252633;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    margin: 8px 0 0 8px;
+    padding: 20px 20px;
+}
+
+.image-selected {
+    border: 2px solid #ff9100;
+}
+
+.images-for-videos {
+    width: 320px;
+    height: 240px;
+    object-fit: none;
+    object-position: 0px 0px;
+}
+
+.images-mvName {
+    align-content: center;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 55px;
+    justify-content: space-evenly;
+    max-width: 320px;
+}
+
+.mv-images-small {
+    font-size: 20px;
+    zoom: 0.5;
+}
+
+#viewBy {
+    background-color: #009485;
+    border-right: 2px solid #252633;
+    border-bottom: 2px solid #252633;
+    cursor: pointer;
+    margin-top: -2px;
+    padding: 5px 9px;
+    width: 170px;
+}
+
+/* MULTIs */
+#videoContainer, #deletePopUp {
+    margin: 0px;
+    padding: 0px;
+}
+
+/* END OF PAGE STUFF */

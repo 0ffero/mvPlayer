@@ -1,0 +1,86 @@
+#videoContainer {
+    align-items: center;
+    background-color: #000;
+    color: #ccc;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: center;
+    left: 0;
+    margin: 0px !important;
+    padding: 0px !important;
+    position: absolute;
+    top: 0;
+    width: 100%;
+    z-index: -10;
+}
+
+#videoButtons {
+    display: flex;
+}
+
+#videoOptions {
+    display: flex;
+    font-size: 12px;
+    justify-content: space-between;
+    width: 640px;
+}
+
+#videoButtons .button, #videoOptions .button {
+    border: 2px solid #ff9100;
+    border-radius: 17px;
+    cursor: pointer;
+    font-size: 17px;
+    padding: 7px 0px !important;
+    text-align: center;
+    transition: 500ms;
+    width: 200px;
+}
+#videoButtons .button:hover, #videoOptions .button:hover {
+    background-color: #2d2d2d;
+    border-radius: 0px;
+}
+#videoOptions .button {
+    transition: 500ms;
+
+    font-size: 12px;
+    width: 100px;
+}
+#videoHeading {
+    font-size: 22px;
+    padding-bottom: 20px;
+    font-weight: bold;
+}
+
+#comingUp {
+    display: flex;
+    height: 200px;
+    border: 2px solid #ff9100;
+    margin-top: 20px !important;
+    min-width: 600px;
+    width: 800px;
+}
+#comingUp .c-u-header {
+    font-weight: bold;
+    font-size: 20px;
+    margin: 0;
+    padding: 0;
+}
+#comingUp .next-header {
+    font-size: 20px;
+    color: white;
+}
+#comingUp .next {
+    font-size: 14px;
+}
+#comingUp .now-header {
+    color: #30ff00;
+}
+#comingUp .now {
+    font-size: 18px;
+    color: white;
+}
+.coming-up {
+    padding-bottom: 0px;
+    margin-bottom: 0px;
+}

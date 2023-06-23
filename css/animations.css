@@ -1,0 +1,6 @@
+/* Animations */
+@keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes fadeOut { 0% { opacity: 1; } 100% { opacity: 0; } }
+.fade-in-div { display: block; animation: fadeIn 1s; }
+.fade-out-div { opacity: 0; animation: fadeOut 2s; }
+.fade-in-flex { display: flex; animation: fadeIn 1s; }

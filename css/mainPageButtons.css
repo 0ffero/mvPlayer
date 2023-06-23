@@ -1,0 +1,99 @@
+.hidden { opacity: 0; display: none !important; }
+
+
+#buttons {
+    border-bottom: 2px solid #252633;
+    display: flex;
+    flex-wrap: wrap;
+    background-color: #009485;
+    padding-bottom: 15px;
+}
+#otherButtons, #playButtons, #selectButtons {
+    display: flex;
+    flex-direction: column;
+}
+
+#playButtons {
+    justify-content: center;
+}
+#selectButtons .button {
+    color: white;
+    background-color: #272935;
+}
+
+#buttons .button {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+#buttons .button, #ytDownloader .button {
+    transition: 500ms;
+    
+    align-content: center;
+    background-color: #2E303E;
+    border: 2px solid #ff9100;
+    border-radius: 15px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    font-weight: bold;
+    height: 24px;
+    justify-content: center;
+    margin: 5px;
+    min-width: 150px;
+    padding: 5px;
+    text-align: center;
+    width: 175px;
+}
+
+#buttons .button:hover, #ytDownloader .button:hover {
+    border-radius: 0px;
+}
+
+#buttons .play-button:hover {
+    background-color: #00a100;
+    color: #ffffff;
+}
+
+#searchListContainer {
+    align-content: center;
+    display: flex;
+    height: 54% !important;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: space-evenly !important; /* override */
+}
+
+#searchList {
+    background-color: #252633;
+    border-radius: 0 0 10px 10px;
+    color: #ffffff;
+    margin-top: 10px;
+    padding: 5px 2px;
+    width: 155px;
+}
+
+.remove-selected {
+    align-content: space-around !important;
+    background-color: #3b0000 !important;
+    display: flex;
+    flex-direction: column;
+    height: 84% !important; /* override */
+    justify-content: space-evenly !important; /* override */
+}
+.remove-selected-icons {
+    color: #ff9100;
+    font-size: 27px;
+}
+.remove-selected-icons:hover {
+    color: #ffb260;
+}
+.remove-selected:hover {
+    transition: 1s;
+
+    /* overrides for special buttons */
+    background-color: #890000 !important;
+    border: 2px solid #ff0000 !important;
+    color: white;
+}

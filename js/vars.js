@@ -1,0 +1,1145 @@
+"use strict"
+var vars = {
+    /*
+            REQUIREMENTS:
+                PHP 5+
+                assets/musicVideos/ folder can either be a real folder or a
+                junction link to another folder
+                WINDOWS: 
+                    cd assets
+                    mklink /J musicvideos drive:folder-with-music-videos
+                LINUX:
+                    Dont really know tbh. Im sure youll figure it out :)
+
+                IMPORTANT: Music videos should be in mp4 or webm format
+
+                
+                STILL TO DO:
+                    🞂 Add groups
+    */
+    DEBUG: true,
+    appID: 'mvp',
+    version: 0.99,
+
+    init: ()=> {
+        vars.localStorage.init();
+
+        let fV = vars.files;
+        fV.getFiles('getFiles.php',fV.dealWithResponseFromGetFiles);
+
+        vars.UI.getElementByID('version').innerHTML = `v${vars.version}`;
+    },
+
+    files: {
+        endpoint: 'endpoints/',
+        filteredForSearch: [],
+        missingImages: [],
+        musicVideoArray: [],
+
+        dealWithResponseFromGetFiles: (rs)=> {
+            let fV = vars.files;
+
+            let requestGenerateImages = false;
+
+            fV.musicVideoArray = [];
+            fV.musicVideoObject = JSON.parse(rs);
+            fV.filteredForSearch = [];
+            let noImagesArray = [];
+            // START PARSING THE RESPONSE FROM THE ENDPOINT
+            console.groupCollapsed(`%cFile RS. Building text and image lists.`,'color: #30ff30');
+            fV.musicVideoObject.forEach((item)=> {
+                fV.musicVideoArray.push(item.mvName);
+                fV.filteredForSearch.push([item.mvName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace('.mp4','').replaceAll('.webm','').replaceAll(/[^0-9a-z-A-Z ]/g, ""), item.sha256]);
+                if (!item.hasImages) {
+                    !requestGenerateImages && (requestGenerateImages=true);
+                    noImagesArray.push(item.mvName);
+                } else {
+                    vars.App.getMVImage(item.mvName);
+                };
+            });
+            if (requestGenerateImages) {
+                fV.missingImages = noImagesArray;
+                console.log(`At least one music video is missing its image set. Requesting the generator to do its thing.`);
+                vars.files.generateMusicVideoImages();
+            };
+            console.groupEnd();
+            vars.UI.init();
+        },
+        dealWithResponseFromImageGenerator: (rs)=> {
+            rs = JSON.parse(rs);
+            if (rs[0].allImage.extrude==='failed') {
+                console.error('Extrusion FAILED!');
+                return;
+            };
+
+            let fV = vars.files;
+            let missingImages = fV.missingImages;
+            rs.forEach((item)=> {
+                let index = missingImages.findIndex(m=>m===item.filename);
+                if (index>-1) { // index is valid
+                    missingImages.splice(index,1); // remove the file from the missing array
+                    vars.App.getMVImage(item.filename); // add the image to the images div
+                };
+            });
+
+            if (missingImages.length) {
+                console.warn(`Some music videos errored when attempting to generate their image sheet\n`, missingImages);
+            };
+        },
+        dealWithOptionsUpdate: (rs)=> {
+            rs = JSON.parse(rs);
+            if (rs.ERROR) { console.error(rs.ERROR); };
+        },
+        dealWithYTGet: (rs)=> {
+            rs = JSON.parse(rs);
+            let msg='';
+            let colour = '#30ff30';
+            if (rs['ERROR'] || rs['WARNING']) {
+                if (rs['ERROR']) {
+                    msg += `ERROR: ${rs['ERROR']}`;
+                    colour = '#ff3030';
+                } else {
+                    msg += `WARNING: ${rs['WARNING']}`;
+                    colour = '#ff8030';
+                };
+            } else {
+                msg += rs['ytRequest'].join('<br/>');
+                msg += rs['ytResponse'];
+            };
+            //console.log(html);
+            vars.UI.addMessageToYTLog(msg, colour);
+        },
+        generateMusicVideoImages: ()=> {
+            // as this endpoint generates ALL missing image files.
+            // Theres no need to repeatedly request the endpoint
+            // NOTE: 
+            //      This can take some time depending on your CPU, so Id advise increasing the php page 
+            //      timeout (max_execution_time) to account for the script probably taking more than the default 30s
+            //      On my slowest PC (core i3) it takes around 3 or 4 seconds to generate a finished image sheet
+            let fV = vars.files;
+            fV.getFiles('generateVideoImages.php', fV.dealWithResponseFromImageGenerator);
+        },
+        getFiles: (url,callback)=> {
+            url = vars.files.endpoint + url;
+            let xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() { 
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    callback(xmlHttp.responseText);
+                };
+            };
+            xmlHttp.open("GET", url, true); // true for asynchronous 
+            xmlHttp.send(null);
+        },
+        getMVNameAndExtension: (sha)=> {
+            if (!sha || sha.length!==64) return false;
+
+            let mvO = vars.files.musicVideoObject;
+            let data = mvO.find(m=>m.sha256===sha);
+
+            let rs;
+            if (data) {
+                let mvArray = data.mvName.split('.');
+                let mvExt = mvArray.pop();
+                let mvName = mvArray.join('.');
+                rs = { mvName: mvName, mvExt: mvExt };
+            } else {
+                rs = null;
+            };
+
+            return rs;
+        },
+        getShaForMusicVideo: (mv)=> {
+            if (!mv.endsWith('.mp4') && !mv.endsWith('.webm')) {
+                console.error(`The music video name must include its extension.\n  You requested the sha for "${mv}"`);
+                return;
+            };
+
+            let fV = vars.files;
+            let found = fV.musicVideoObject.find(m=>m.mvName===mv);
+            if (!found) { console.error(`Unable to find sha for ${mv}!\nExiting`); return null; };
+
+            return found.sha256;
+        },
+
+        getYT: (id)=> {
+            if (id.length!==11) return false;
+
+            let params = `id=${id}`
+            
+            let callback = vars.files.dealWithYTGet;
+            let endpoint = `${vars.files.endpoint}downloadYT.php`;
+
+            let xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() { 
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    callback(xmlHttp.responseText);
+                };
+            };
+            xmlHttp.open("POST", endpoint, true); // true for asynchronous 
+            xmlHttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xmlHttp.send(params);
+        },
+
+        removeMusicVideoFromList: (mvName)=> {
+            let fV = vars.files;
+            // find it in the main list
+            let index = fV.musicVideoArray.findIndex(m=>m.includes(mvName));
+            // and remove it (if found)
+            index>-1 && fV.musicVideoArray.splice(index,1);
+
+            return index>-1 ? true : false;
+        },
+
+        updateOptions: (which,option,sha)=> {
+            let allowed = ['introEnd','outroStart','lyrics']; // TODO Add override option for main image
+            if (!option || !checkType(which,'string') || sha.length!==64) return false;
+
+            if (!allowed.includes(which)) {
+                console.error(`Invalid which var (${which})`);
+                return false;
+            };
+
+            let options = { sha: sha };
+            options[which] = option;
+            let params = `which=${which}&sha=${sha}&value=${option}`
+            
+            let callback = vars.files.dealWithOptionsUpdate;
+            let url = `${vars.files.endpoint}setOptionsForMusicVideo.php`;
+
+            let xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() { 
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    callback(xmlHttp.responseText);
+                };
+            };
+            xmlHttp.open("POST", url, true); // true for asynchronous 
+            xmlHttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xmlHttp.send(params);
+        }
+    },
+
+    localStorage: {
+        appID: ()=> {
+            return vars.appID;
+        },
+        init: (reset=false)=> {
+            let lV = vars.localStorage;
+            let appID = lV.appID();
+            let lS = window.localStorage;
+            // LOAD THE VARIABLES
+            if (!lS[appID] || reset) {
+                lS[appID] = JSON.stringify({
+                    ignore: [],
+                    played: [],
+                    stars: []
+                });
+            };
+
+            let options = vars.App.options = JSON.parse(lS[appID]);
+
+            // check for the new offsets array ADDED D20230616T1941
+            if (!options['offsets']) {
+                options.offsets = [];
+                lS[appID] = JSON.stringify(options);
+            };
+        },
+        saveMVImageOffset: (sha,offset)=> {
+            if (!sha || !checkType(offset,'string')) return false;
+
+            let options = vars.App.options;
+            let index = options.offsets.findIndex(m=>m[0]===sha);
+
+            if (index<0) { // this music video doesnt have a preferred image yet (ie its offsetx===0)
+                options.offsets.push([sha,offset]);
+            } else {
+                options.offsets[index] = [sha,offset];
+            };
+
+            let lV = vars.localStorage;
+            let appID = lV.appID();
+            let lS = window.localStorage;
+            lS[appID] = JSON.stringify(options);
+        },
+        saveOptions: ()=> {
+            let aV = vars.App;
+            let json = JSON.stringify(aV.options);
+
+            let lV = vars.localStorage;
+            let lS = window.localStorage;
+            lS[lV.appID()] = json;
+
+            console.log(`%c** Options saved **`,'color: #30ff30; font-weight: bold;');
+        }
+    },
+
+    // APP
+    App: {
+        linkArray: [],
+        selectedMusicVideos: [],
+        shuffling: false,
+        tableColumns: null,
+
+        // ENTRY FUNCTION
+        init: ()=> {
+            // pre-inits
+            vars.App.video.init();
+
+            // inits
+            vars.init();
+        },
+
+        addMusicVideosToIgnoreList: ()=> {
+            let aV = vars.App;
+            let options = aV.options;
+
+            while (aV.selectedMusicVideos.length) {
+                // add the music video to the ignore list
+                let remove = aV.selectedMusicVideos.shift();
+                let mvName = `${remove[0]}.${remove[1]}`;
+                options.ignore.push(mvName);
+                // find it in the main list and remove
+                if (!vars.files.removeMusicVideoFromList(mvName)) {
+                    console.error(`Index for ${mV} wasnt found`);
+                };
+            };
+
+            // save the options to local storage
+            vars.localStorage.saveOptions();
+
+            // redraw the list
+            vars.UI.buildMusicVideoList();
+
+            // hide the popup
+            vars.UI.showDeletePopUp(false);
+        },
+
+        addRemoveMV(mv,ext) {
+            let aV = vars.App;
+
+            // does the video already exist in the selectedMusicVideos array?
+            let index = aV.selectedMusicVideos.findIndex(m=>m[0]===mv.replaceAll('\'',"\\'"));
+            if (index===-1) { // no, it doesnt... ADD it
+                aV.selectedMusicVideos.push([mv,ext]);
+                vars.DEBUG && console.log(`Added %c${mv}%c to selected videos list`, 'color: #60ff60','color: default');
+                return 'added';
+            };
+
+            // this mv exists in the selected list, remove it
+            aV.selectedMusicVideos.splice(index,1);
+            vars.DEBUG && console.log(`Removed`);
+
+            return 'removed';
+        },
+
+        filterList: ()=> {
+            let sL = vars.UI.getElementByID('searchList');
+            let searchFor = sL.value;
+            if (!searchFor.trim()) { // search box is empty, show everything!
+                let children = vars.UI.getElementByID('list').children;
+                for (let c=0; c<children.length; c++) { children[c].className = 'li'; };
+                return;
+            };
+            
+            let mVA = vars.files.filteredForSearch;
+            let foundList = mVA.filter(m=>m[0].includes(searchFor));
+            
+            let filterArray = [];
+            // all we need from the found list is the sha
+            foundList.forEach((fL)=> {
+                filterArray.push(fL[1]);
+            });
+
+            let children = vars.UI.getElementByID('list').children;
+            for (let c=0; c<children.length; c++) {
+                let child = children[c];
+                let sha = child.getAttribute('data-sha');
+                child.className = filterArray.includes(sha) ? 'li' : 'hidden';
+            };
+        },
+
+        getMVExtension: (mv)=> {
+            let extension = mv.split('.');
+            return extension[extension.length-1];
+        },
+
+        getMVImage: (mvName, returnHTML=false)=> { // COMPLETE MISNOMER NOW; This used to pass an image to a div. Now, it generates the mv images div (one by one - ie its called over and over as the list is being built)
+            if (!mvName) { console.warn(`mvName was either not sent or was invalid (mvName: ${mvName})`); return; };
+
+            let sha = vars.files.getShaForMusicVideo(mvName);
+            let nameOfMV = vars.App.getMVName(mvName);
+            let mviDiv = vars.UI.getElementByID('musicVideoImages');
+
+            let offset = vars.App.options.offsets.find(m=>m[0]===sha);
+            let imageNumber = offset ? offset[1].split(' ')[0].replace('px','')*-1/320+1 : 0;
+            (offset && vars.DEBUG) && console.log(`  Offset found for %c${nameOfMV}: %c${offset[1]} (image number ${imageNumber})`,'color: #ffff00','color: #00ff00');
+            let style = !offset ? "" : `"object-position: ${offset[1]}"`;
+
+            let html = `<div id="${sha}" onmouseenter="vars.UI.moveMVNextImageButton(event, this)" class="flex-image" onclick="vars.input.click(event,this)"><img class="images-for-videos" ${style&&(`style=${style}`)} src="assets/mvimages/${sha}/all_extrude.jpg"><div class="images-mvName">${nameOfMV}</div></div>`;
+
+            if (returnHTML) return html;
+            mviDiv.innerHTML += html;
+        },
+        getMVName: (mv)=> {
+            return mv.replace('.mp4','').replace('.webm','');
+        },
+
+        getNextVideo: (leaveInArray=true)=> {
+            let aV = vars.App;
+            let rs = !aV.selectedMusicVideos.length ? null : leaveInArray ? aV.selectedMusicVideos[0] : aV.selectedMusicVideos.shift();
+            return rs;
+        },
+
+        getOptionsForMusicVideo: (mvName)=> {
+            let mVO = vars.files.musicVideoObject;
+
+            let options = mVO.find(m=>m.mvName===mvName);
+
+            if (!options || !options.options) {
+                console.warn(`There are no options for the music video ${mvName}.\nYou should never see this message.\nIf you do, the %cgetFiles.php%c isnt working properly`,'font-size: 12px; font-weight:bold; color: #ffff00;','color: default');
+                return false;
+            };
+
+            options.options.sha256 = options.sha256;
+            return options.options;
+        },
+
+        showNextMVImage: (event,divDOM)=> {
+            let sha = divDOM.getAttribute('data-sha');
+            let maxScroll = -960;
+            let deltaScroll = 320;
+            let divs = vars.UI.getElementByID(sha);
+            if (!divs) return;
+        
+            let div = divs.children[0];
+            let oP = div.style.objectPosition
+        
+            let offset='';
+            if (!oP) { // this ISNT the first time weve modified the object position: pdate it.
+                offset = "-320px 0px";
+            } else {
+                let offsetX = div.style.objectPosition.split(" ")[0].replace("px","")*1;
+                offsetX = (offsetX>maxScroll) ? offsetX-deltaScroll : 0;
+                offset = `${offsetX}px 0px`;
+            };
+            
+            div.style.objectPosition=offset;
+
+            vars.localStorage.saveMVImageOffset(sha,offset);
+        },
+
+        shuffleMusicVideos: (e,div)=> {
+            let aV = vars.App;
+            if (aV.shuffling) return;
+            aV.shuffling=true;
+
+            vars.DEBUG && console.log(`Shuffle started...`);
+            let fV = vars.files;
+            let completeList = [...fV.musicVideoArray];
+            // First. If we have selected videos, remove them from the file list
+            let sV = [];
+            aV.selectedMusicVideos.forEach((sMV)=> {
+                sV.push(`${sMV[0]}.${sMV[1]}`);
+            });
+            sV.forEach((sMV)=> {
+                let idx = completeList.findIndex(m=>m===sMV);
+                idx>-1 && completeList.splice(idx,1);
+            });
+            shuffle(sV);
+            shuffle(completeList);
+            fV.musicVideoArray = [...sV,...completeList];
+
+            // RE-ORDER ALL THE VIEWS
+            vars.UI.buildMusicVideoList(); // also builds the table
+
+            // reset the shuffling var
+            setTimeout(()=> {
+                vars.input.enableShuffleButton();
+            },100);
+            vars.DEBUG && console.log(`... shuffle rebuild completed!`);
+        },
+
+        update: ()=> {
+            if (vars.UI.getElementByID('video').paused) return;
+            if (!vars.App.video.currentMusicVideoOptions.outroStart) return;
+
+            (vars.UI.getElementByID('video').currentTime>vars.App.video.currentMusicVideoOptions.outroStart) && vars.App.video.playNext();
+        },
+
+        updateTableColumns: (init=false)=> {
+            let aV = vars.App;
+
+            if (window.innerWidth<800) {
+                if (aV.tableColumns===1) return;
+                aV.tableColumns=1;
+            } else if (window.innerWidth>=1500) {
+                if (aV.tableColumns===3) return;
+                aV.tableColumns=3;
+            } else {
+                if (aV.tableColumns===2) return;
+                aV.tableColumns=2;
+            };
+            console.log(`${aV.tableColumns} column table`);
+            
+            console.log(`Change in column count detected. Redrawing the mv table`);
+
+            vars.UI.setTableColumns();
+
+            !init && vars.UI.buildTable();
+        },
+
+        updateTheComingUpList: ()=> {
+            vars.UI.updateTheComingUpList();
+        },
+
+        video: {
+            currentMusicVideoOptions: null,
+            playlist: null,
+            seeking: false,
+            interval: null,
+
+            init: ()=> {
+                var v = vars.UI.getElementByID('video');
+                var vV = vars.App.video;
+
+                vV.interval = setInterval(()=> {
+                    vars.App.update()
+                },250);
+
+                v.oncanplay = ()=> {
+                    if (vV.seeking) { vV.seeking=false; return; }
+                    if (!vV.currentMusicVideoOptions.introEnd) return;
+
+                    let options = vV.currentMusicVideoOptions;
+
+                    // skip to the intro end position
+                    v.currentTime = options.introEnd;
+                    vV.seeking = true;
+                };
+            },
+
+            generatePlaylist: ()=> {
+                let playlist = [];
+
+                let list = vars.UI.getElementByID('list');
+                
+                for (let l in list.children) {
+                    if ((l*1).toString()!=='NaN') {
+                        let mv = list.children[l];
+                        let c = mv.firstChild.firstChild;
+                        let mvName = c.getAttribute('data-text').replaceAll("\\'", "'");
+                        let extension = c.getAttribute('data-extension');
+
+                        playlist.push([mvName,extension]);
+                    };
+                };
+
+                vars.App.selectedMusicVideos = playlist;
+            },
+
+            getVideoDiv: ()=> {
+                return vars.UI.getElementByID('video');
+            },
+
+            getYT: (e,input)=> {
+                if (e.keyCode!==13) return;
+
+                let url = input.value;
+                let ytIDLength = 11;
+                
+                let allowed = ['https://youtu.be/','https://www.youtube.com/'];
+                let found = false;
+                // check for a valid url whilst removing common url parts (in allowed array above)
+                allowed.forEach((a)=> {
+                    (url.startsWith(a) && !found) && (found=true);
+                    url = url.replace(a,'');
+                });
+                url = url.replace('watch?v=','');
+                if (!found) { console.error(`%cURL was invalid.\nIt must be in its original format starting with:\n%c    https://youtu.be/\n    %cor\n    %chttps://www.youtube.com/%c\nExamples:\n    %chttps://www.youtube.com/watch?v=wYkmvq_vANs\n    https://www.youtube.com/watch?v=wYkmvq_vANs&t=120\n    https://www.youtube.com/watch?v=8ifY2dvQnK4&list=PLAAetX470-WjEnvqIrmN_1AusoXtJAUoe&index=1\n  %cor\n    https://youtu.be/8ifY2dvQnK4\n    https://youtu.be/8ifY2dvQnK4?t=205`, 'color: #ff0000', 'color: default','color: #ffff00', 'color: default','color: #30ff30', 'color: default', 'color: #30FF30'); return false; }
+                
+                // url is valid
+                // start parsing the URL
+                if (url.length!==ytIDLength) { // we dont have the ID after removing the common part of the url
+                    console.log(url);
+                    url = url.split('&')[0];
+                    url.includes('?t=') && (url=url.split('?')[0]);
+                };
+
+                // again, check if the url is 11 characters long
+                if (url.length!==11) {
+                    console.error(`The url couldnt be parsed.\nWhen looking for the videos ID, the function was left with ${url}`);
+                    return false;
+                };
+
+
+
+                // YUP. Everything looks good. We have an id (url) that is 11 characters long. Basically its as valid as it gets
+                // empty out the input box
+                input.value='';
+
+                // add a download msg to the log
+                let msg = `Downloading youtube video with ID: ${url}<br/>Please wait...`;
+                vars.UI.addMessageToYTLog(msg);
+
+                // send URL to the endpoint
+                vars.files.getYT(url);
+            },
+
+            introEndSet: ()=> {
+                let which = 'introEnd';
+                let vV = vars.App.video;
+                let v = vV.getVideoDiv();
+
+                let options = vV.currentMusicVideoOptions;
+                if (options.outroStart) {
+                    if (options.outroStart<options.introEnd || options.introEnd===options.outroStart) {
+                        console.log(`introEnd %c${options.introEnd}%c cannot be after or equal to outroStart %c${options.outroStart}%c. %cRequest IGNORED%c.`, 'color: #30ff30', 'color: default;', 'color: #30ff30', 'color: default;', 'color: #e10000', 'color: default;');
+                        return false;
+                    };
+                };
+                if (options.introEnd===v.currentTime) {
+                    console.log(`introEnd is already set to %c${v.currentTime}%c. %cRequest IGNORED%c.`, 'color: #30ff30', 'color: default;', 'color: #e10000', 'color: default;');
+                    return;
+                };
+
+                options.introEnd = v.currentTime;
+
+                let sha = options.sha256;
+                vars.files.updateOptions(which,options.introEnd,sha);
+            },
+
+            outroStartSet: ()=> {
+                let which = 'outroStart';
+                let vV = vars.App.video;
+                let v = vV.getVideoDiv();
+
+                let options = vV.currentMusicVideoOptions;
+                if (options.introEnd) {
+                    if (options.introEnd<options.outroStart || options.introEnd===options.outroStart) {
+                        console.log(`outroStart %c${options.outroStart}%c cannot be before or equal to introEnd %c${options.introEnd}%c. %cRequest IGNORED%c.`, 'color: #30ff30', 'color: default;', 'color: #30ff30', 'color: default;', 'color: #e10000', 'color: default;');
+                        return false;
+                    };
+                };
+                if (options.outroStart===v.currentTime) {
+                    console.log(`outroStart is already set to %c${v.currentTime}%c. %cRequest IGNORED%c.`, 'color: #30ff30', 'color: default;', 'color: #e10000', 'color: default;');
+                    return;
+                };
+
+                options.outroStart = v.currentTime;
+
+                let sha = options.sha256;
+                vars.files.updateOptions(which,options.outroStart,sha);
+            },
+
+            playNext: ()=> {
+                let aV = vars.App;
+                
+                // draw the upcoming list
+                aV.updateTheComingUpList();
+
+                // get the next track details
+                let nextMusicVideo = aV.getNextVideo();
+                if (!checkType(nextMusicVideo,'array') || nextMusicVideo.length!==2) {
+                    aV.video.show(false);
+                    console.log(`No videos left in selected...\nExiting.`);
+                    return;
+                };
+
+                // next track is valid
+                let mvName = nextMusicVideo[0];
+                let extension = nextMusicVideo[1];
+                // get the options for tihs file
+                aV.video.currentMusicVideoOptions = aV.getOptionsForMusicVideo(`${mvName}.${extension}`);
+
+                // un-select this music video
+                let sha = aV.video.currentMusicVideoOptions.sha256;
+                vars.input.clickOnWhich('list',sha);
+
+                // play the video
+                let v = vars.UI.getElementByID('video');
+                let folder = './assets/musicVideos';
+                v.src=`${folder}/${mvName}.${extension}`;
+            },
+
+            show: (show=true)=> {
+                let v = vars.UI.getElementByID('videoContainer');
+                if (show) {
+                    v.className = 'fade-in-flex';
+                    v.style.zIndex=10;
+                    document.body.style.overflowY='hidden';
+                    return;
+                };
+                v.className='hidden';
+                v.style.zIndex=-10;
+                document.body.style.overflowY='';
+
+                vars.UI.getElementByID('video').pause();
+
+            }
+        }
+    },
+
+    input: {
+        click: (e,div)=> {
+            // figure out which view was clicked
+            let id = div.id;
+
+            let sha = '';
+            let which = '';
+
+            if (id.startsWith('checkbox')) {
+                which='option'; sha = vars.App.linkArray.find(m=>m[0]===id)[3];
+            } else if (id.startsWith('table_')) { // table selection was clicked
+                which='table'; sha = id.split('_')[1];
+            } else if (id.startsWith('list_')) { // table selection was clicked
+                which='list'; sha = id.split('_')[1];
+            } else if (id.length===64) { // sha alone (video images click)
+                which='images'; sha = id;
+            } else { // ummm... no table, option or list item was clicked.. wtf?
+                console.error(`Something with an ID of ${id} was clicked but has no function to deal with it`);
+                debugger;
+                return;
+            };
+            /* REMOVED
+                else if (id.startsWith('option_')) { // table selection was clicked
+                    which='option'; sha = id.split('_')[1];
+                }
+            */
+
+            vars.input.clickOnWhich(which,sha);
+        },
+
+        clickOnWhich: (which,sha)=> {
+            if (!sha || sha.length!==64) return false; // sha is invalid: exit.
+            /*
+                This function deals with (un)highlighting the clicked "which" if necessary.
+                It then (un)highlights the other views that are available.
+                And example of each possibility:
+                    image  clicked  -> click the option                                 -> click the table view
+                    list   clicked  -> click the option     -> click the image view     -> click the table view
+                    option clicked                          -> click the image view     -> click the table view
+                    table  clicked  -> click the option     -> click the image view
+            */
+
+            let availableDivs = ['images','table']; // note that the "list" div is NOT in this array. Thats because it doesnt get highlighted in any way, no matter what was clicked
+            which!=='option' && availableDivs.push('option');
+            /*
+                ******************************
+                *  ADD OR REMOVE THE MUSIC   *
+                * VIDEO TO THE SELECTED LIST *
+                ******************************
+            */
+            let rs = vars.files.getMVNameAndExtension(sha);
+            if (!rs) {
+                console.error(`Unable to find mv name and extension for sha ${sha}.\nExiting`);
+                debugger;
+                return;
+            };
+
+            // add/remove music video to "selected" list
+            let addRS = vars.App.addRemoveMV(rs.mvName,rs.mvExt);
+
+            // did we just add or remove this music video from the selected list?
+            let added = addRS==='added' ? true : false;
+            let css = added ? 'color: #30ff30' : 'color: #ff3030';
+
+            // now (un)highlight all the others
+            let gID = vars.UI.getElementByID;
+            availableDivs.forEach((aDiv)=> {
+                switch (aDiv) {
+                    case 'images': // highlight the associated image
+                        let iDiv = gID(sha);
+                        iDiv.className = added ? 'flex-image image-selected' : 'flex-image';
+                        vars.DEBUG && console.log(`  > %c${added?'Highlighted':'Unhighlighted'} image.`, css);
+                    break;
+
+                    case 'option': // tick the associated option
+                        let checkBoxID = vars.App.linkArray.find(m=>m[1]===rs.mvName);
+                        if (!checkType(checkBoxID,'array') || checkBoxID.length!==4) {
+                            console.error(`Unable to find the checkbox for ${mvName}`);
+                            return false;
+                        };
+
+                        let checkBox = vars.UI.getElementByID(checkBoxID[0]);
+                        checkBox.checked = added ? true : false;
+                        vars.DEBUG && console.log(`  > %c${added?'Checked':'Unchecked'} tick box.`, css);
+                    break;
+
+                    case 'table': // highlight the associated table item
+                        let tDiv = gID(`table_${sha}`);
+                        tDiv.className = added ? 'list-item item-selected' : 'list-item';
+                        vars.DEBUG && console.log(`  > %c${added?'Highlighted':'Unhighlighted'} table.`, css);
+                    break;
+                };
+            });
+        },
+
+        enableShuffleButton: (enable=true)=> {
+            let aV = vars.App;
+            let div = vars.UI.getElementByID('shuffleButton');
+            if (enable) {
+                div.style.opacity=1;
+                aV.shuffling=false;
+            } else {
+                div.style.opacity=0.33;
+            };
+        }
+    },
+
+    UI: {
+        buildComplete: false,
+        currentView: 'list',
+        viewNames: ['List', 'Table', 'Images (small)', 'Images (large)'],
+        views: ['list','table','images-s','images-l'],
+
+        init: ()=> {
+            // remove hidden/deleted videos
+            vars.App.options.ignore.forEach((mv)=> {
+                vars.files.removeMusicVideoFromList(mv);
+            });
+            
+            vars.App.updateTableColumns(true);
+
+            vars.UI.buildMusicVideoList();
+        },
+
+        addMessageToYTLog: (msg='', colour='#ffffff')=> {
+            if (!msg.trim()) return;
+
+            let divName = `ytlog-` + generateRandomID();
+
+            let gID = vars.UI.getElementByID;
+            let ytLog = gID('ytLog');
+            let html = `<div id="${divName}" class="log-item" style="color: ${colour}">${msg}</div>`;
+            ytLog.innerHTML = ytLog.innerHTML + html;
+            // add a timer to this div to delete it after a few seconds
+            let timeout = 5000;
+            setTimeout(()=> {
+                gID(divName).remove();
+            }, timeout);
+        },
+
+        buildImagesView: ()=> {
+            let tStart=0;
+            if (vars.DEBUG) {
+                console.groupCollapsed(`%cFile RS. Building text and image lists.`,'color: #30ff30');
+                tStart = new Date();
+            };
+            let aV = vars.App;
+            let sMV = aV.selectedMusicVideos;
+            let rs = aV.linkArray;
+            let mviDiv = vars.UI.getElementByID('musicVideoImages');
+            mviDiv.innerHTML='';
+
+            rs.forEach((mv)=> {
+                let mvName = mv[1];
+                let fileName = `${mv[1]}.${mv[2]}`;
+                let html = aV.getMVImage(fileName, true); // add the image to the images div
+                let cssClass = sMV.findIndex(m=>m[0]===mvName)===-1 ? 'flex-image' : 'flex-image image-selected';
+                let divArray = html.split(' ');
+                divArray.splice(1,0,cssClass);
+                html = divArray.join(' ');
+                mviDiv.innerHTML = mviDiv.innerHTML + html;
+            });
+            if (vars.DEBUG) {
+                console.groupEnd();
+                console.log(`Build Images took ${new Date()-tStart}ms`);
+            };
+        },
+
+        buildMusicVideoList: ()=> {
+            let aV = vars.App;
+            let fV = vars.files;
+            let UI = vars.UI;
+
+            let rs = fV.musicVideoArray;
+
+            let html = '';
+            let listDOM = UI.getElementByID('list');
+
+            let selected = vars.App.selectedMusicVideos;
+
+            let id = 0;
+
+            let linkArray = [];
+            rs.forEach((mv)=> {
+                let extension = aV.getMVExtension(mv);
+                let mvName = aV.getMVName(mv);
+                let sha = vars.files.getShaForMusicVideo(mv);
+
+                let checked = selected.findIndex(m=>m[0]===mvName)>-1 ? 'checked': '';
+
+                html+=`<div data-sha="${sha}" class="li">`;
+                html+=`<div id="option_${sha}" class="option_select"><input id="checkbox_${id}" type="checkbox" ${checked} onclick="vars.input.click(event,this);"></div>`;
+                html+=`<div id="list_${sha}" class="listItem" onclick="vars.input.click(event,this)">${mvName}</div>`;
+                html+='</div>';
+
+                linkArray.push([`checkbox_${id}`,mvName,extension,sha]);
+
+                id++;
+            });
+
+            aV.linkArray = linkArray;
+
+            listDOM.innerHTML = html;
+
+            // build the table
+            UI.buildTable();
+            let mVI = UI.getElementByID('musicVideoImages');
+            mVI.children && mVI.children.length ? vars.UI.reorderImagesView() : vars.UI.buildImagesView();
+        },
+
+        buildTable: ()=> {
+            let tStart = new Date();
+            let aV = vars.App;
+            let gID = vars.UI.getElementByID;
+
+            let columns = aV.tableColumns;
+            let colDivs = [];
+            for (let cD=0; cD<columns; cD++) {
+                let c = gID(`tableColumn${cD}`);
+                c.innerHTML='';
+                colDivs.push(c);
+            };
+
+            let child = 0;
+            let sMV = aV.selectedMusicVideos;
+            let rs = aV.linkArray;
+            rs.forEach((mv)=> {
+                let col = child%columns;
+                let mvName = mv[1];
+                let sha = vars.files.getShaForMusicVideo(`${mv[1]}.${mv[2]}`);
+                let cssClass = sMV.findIndex(m=>m[0]===mvName)===-1 ? 'list-item' : 'list-item item-selected';
+                let html = `<div id="table_${sha}" class="${cssClass}" onclick="vars.input.click(event,this)">${mvName}</div>`;
+                colDivs[col].innerHTML = colDivs[col].innerHTML + html;
+                child++;
+            });
+            console.log(`Build Table took ${new Date()-tStart}ms`);
+
+        },
+
+        checkAll(check=true, invert=false) { // if invert is true, "check" is ignored        
+            let list = vars.UI.getElementByID('list').children;
+            let files = [];
+            for (let l in list) {
+                if ((l*1).toString()!=='NaN') { 
+                    let c = list[l].firstChild.firstChild;
+                    if (!invert) { c.checked = check; } else { c.checked = !c.checked; };
+
+                    if (c.checked) {
+                        let extension = c.getAttribute('data-extension');
+                        let mvName = c.getAttribute('data-text').replaceAll("\\'","'");
+                        files.push([mvName,extension]);
+                    };
+                };
+            };
+            vars.App.selectedMusicVideos = files;
+        },
+        checkInverse() {
+            vars.UI.checkAll(null,true);
+        },
+
+        getElementByID(id) {
+            if (!id) return false;
+
+            return document.getElementById(id);
+        },
+
+        highlightMVImage: (e, div, direct=false)=> {
+            div.className.includes('image-selected') ? div.className = 'flex-image' : div.className = 'flex-image image-selected';
+            
+            // find the checkbox in the list and tick/untick
+            if (!direct) return;
+            let found=false;
+            let sha = div.id;
+            let children = vars.UI.getElementByID('list').children;
+            for (let c=0; c<children.length; c++) {
+                if (!found && children[c].dataset.sha===sha) {
+                    found=children[c];
+                    let isChecked = found.childNodes[0].childNodes[0].checked;
+                    found.childNodes[0].childNodes[0].checked=!isChecked;
+                    let ob = vars.files.musicVideoObject.find(m=>m.sha256===sha);
+                    if (!ob) {
+                        console.error(`Unable to find mvName from sha (${sha})`);
+                        return;
+                    };
+                    let mvName = ob.mvName;
+                    let mvSplit = mvName.split('.');
+                    let extension = mvSplit.pop()
+                    mvName = mvSplit.join('.');
+
+                    vars.App.addRemoveMV(mvName,extension,true);
+                };
+            };
+        },
+
+        moveMusicVideoImageBackIntoMVI: ()=> {
+            let gID = vars.UI.getElementByID;
+            let mvI = gID('imagesForVideo');
+            if (!mvI.childElementCount) return;
+        },
+        moveMVNextImageButton: (e,div)=> {
+            let divPosition = div.getBoundingClientRect();
+            let sha = div.id;
+            let divTop = divPosition.top;
+            let divRight = divPosition.right;
+
+            let divider = vars.UI.currentView==='images-s' ? 2 : 1;
+
+            let nextImageButton = vars.UI.getElementByID('nextMusicVideoImage');
+            nextImageButton.setAttribute('data-sha',sha);
+            let y = (divTop+2)/divider+window.scrollY;
+            divider===2 && (y-=17);
+            nextImageButton.style.top=`${y}px`;
+            nextImageButton.style.scale=1/divider;
+            nextImageButton.style.left=`${(divRight-(64+5)*((1+divider)/2))/divider}px`;
+
+            vars.UI.showChangeMVImageButton(true);
+        },
+
+        reorderImagesView: ()=> {
+            let tStart = vars.DEBUG && new Date();
+
+            let fV = vars.files;
+            let completeList = [...fV.musicVideoArray]; // get the complete list
+            let divs = vars.UI.getElementByID('musicVideoImages'); // grab the mVI div
+            let children = [...divs.children]; // grab its children
+            divs.innerHTML=''; // empty the div
+
+            // go thru the complete list, adding the divs back in the correct order
+            completeList.forEach((c)=> {
+                let sha = vars.files.getShaForMusicVideo(c);
+                let index = children.findIndex(m=>m.id===sha);
+                if (index<0) return;
+                let div = children.splice(index,1)[0];// remove it from the children
+                divs.append(div); // push it back into the mvi div
+            });
+
+            vars.DEBUG && console.log(`Images View took ${new Date()-tStart}ms to reorder`);
+        },
+
+        setTableColumns: ()=> {
+            let tableDiv = vars.UI.getElementByID('table');
+            let html = '';
+            for (let tC=0; tC<vars.App.tableColumns; tC++) {
+                html+=`<div id="tableColumn${tC}" class="column"></div>`;
+            };
+            tableDiv.innerHTML = html;
+        },
+
+        showDeletePopUp: (show=true)=> {
+            if (show && !vars.App.selectedMusicVideos.length) return;
+
+            let get = vars.UI.getElementByID;
+
+            let count = vars.App.selectedMusicVideos.length;
+
+            let className = !show ? 'hidden' : '';
+            let dP = get('deletePopUp');
+            dP.className = className;
+            dP.style.zIndex = show ? 20: -20;
+
+            show && (get('warningText').innerHTML = `You are about to remove ${count} file${count>1 ? 's':''}?<p>${count>1? 'They': 'It'} will no longer show in the list!<div style="padding: 0px; margin: 40px 0px;">Continue?</div>`);
+        },
+        showChangeMVImageButton: (show=true)=> {
+            let div = vars.UI.getElementByID('nextMusicVideoImage');
+            div.className = show ? '' : 'hidden';
+        },
+
+        showTable: (show=true)=> {
+            vars.UI.getElementByID('table').className = show ? '' : 'hidden';
+        },
+
+        showYTDownloader: (show=true)=> {
+            vars.UI.getElementByID('ytDownloader').className= show ? '' : 'hidden';
+
+            if (show) {
+                let gID = vars.UI.getElementByID;
+                let ytURL = gID('ytURL');
+                ytURL.focus();
+            };
+        },
+
+        switchView: (e,div)=> {
+            let UI = vars.UI;
+            let views = UI.views;
+            let currentView = UI.currentView;
+            let index = views.findIndex(m=>m===currentView);
+            index++;
+            index===views.length && (index=0);
+
+            // hide the change mv image button
+            vars.UI.showChangeMVImageButton(false);
+
+            let newView = UI.currentView = views[index];
+            
+            let gID = UI.getElementByID;
+            // hide the current view (ignored if the current view is images small)
+            if (currentView!=='images-s') {
+                let currentViewDivID = '';
+                switch (currentView) {
+                    case 'images-l': currentViewDivID = 'musicVideoImages'; break;
+                    case 'list': currentViewDivID = 'list'; break;
+                    case 'table': currentViewDivID = 'table'; break;
+                    // the next error should NEVER happen as its saying the "current view" DOESNT have an ID associated with it
+                    // if thats true, how is the "current view" currently visible?
+                    // the only reason would be if Im testing a new view and have forced it without implementing its "switch" function
+                    // ie, its simply left here for debugging purposes
+                    default: console.error(`The current view (${currentView}) has no div id associated with it.\nExiting.`); return; break;
+                };
+                gID(currentViewDivID).className = 'hidden';
+            };
+
+
+            let divID = '';
+            // show the new view (ignored if the new view is images large)
+            if (newView!=='images-l') {
+                switch (newView) {
+                    case 'images-s': divID = 'musicVideoImages'; break;
+                    case 'list': divID='list'; break;
+                    case 'table': divID='table'; break;
+                    default: console.error(`The new view (${newView}) has no div id associated with it.\nExiting.`); return; break;
+                };
+                // show the new view
+                gID(divID).className = '';
+            };
+
+
+
+            // change the "current view" div's html (and css)
+            let vB = gID('viewBy');
+            if (newView.startsWith('images')) {
+                if (newView==='images-s') {
+                    gID('musicVideoImages').className='mv-images-small';
+                    vB.style.width="250px";
+                } else {
+                    gID('musicVideoImages').className='';
+                };
+            } else {
+                vB.style.width="170px";
+            }; 
+            let type = UI.viewNames[index];
+            div.innerHTML = `Current View: ${type}`;
+        },
+
+        updateTheComingUpList: ()=> {
+            let list = vars.App.selectedMusicVideos;
+
+            let nowHeader = '<div class="c-u-header now-header">NOW</div>';
+            let nextHeader = '<div class="c-u-header next-header">COMING UP</div>';
+            let html = '';
+
+            let count = list.length<4 ? list.length : 4;
+            if (count) {
+                for (let i=0; i<count; i++) {
+                    let mvName = list[i][0];
+                    let className = i ? ' next' : ' now';
+                    !i && (html+=nowHeader);
+                    i===1 && (html+=nextHeader);
+                    html += `<div class="coming-up${className}">${mvName}</div>`;
+                };
+            };
+
+            vars.UI.getElementByID('comingUpList').innerHTML = html;
+        }
+    }
+};
