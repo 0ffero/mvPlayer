@@ -15,11 +15,12 @@ var vars = {
 
                 
                 STILL TO DO:
+                    🞂 Finish adding lyrics code
                     🞂 Add groups
     */
     DEBUG: true,
     appID: 'mvp',
-    version: 0.99,
+    version: 1.01,
 
     init: ()=> {
         vars.localStorage.init();
@@ -46,7 +47,7 @@ var vars = {
             fV.filteredForSearch = [];
             let noImagesArray = [];
             // START PARSING THE RESPONSE FROM THE ENDPOINT
-            console.groupCollapsed(`%cFile RS. Building text and image lists.`,'color: #30ff30');
+            vars.DEBUG && console.groupCollapsed(`%cFile RS. Building text and image lists.`,'color: #30ff30');
             fV.musicVideoObject.forEach((item)=> {
                 fV.musicVideoArray.push(item.mvName);
                 fV.filteredForSearch.push([item.mvName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace('.mp4','').replaceAll('.webm','').replaceAll(/[^0-9a-z-A-Z ]/g, ""), item.sha256]);
@@ -58,17 +59,20 @@ var vars = {
                 };
             });
             if (requestGenerateImages) {
+                vars.DEBUG && console.log(`At least one music video is missing its image set. Requesting the generator to do its thing.`);
                 fV.missingImages = noImagesArray;
-                console.log(`At least one music video is missing its image set. Requesting the generator to do its thing.`);
-                vars.files.generateMusicVideoImages();
+                fV.generateMusicVideoImages();
             };
-            console.groupEnd();
+            vars.DEBUG && console.groupEnd();
             vars.UI.init();
         },
         dealWithResponseFromImageGenerator: (rs)=> {
             rs = JSON.parse(rs);
+
             if (rs[0].allImage.extrude==='failed') {
-                console.error('Extrusion FAILED!');
+                let msg = 'Extrusion FAILED!';
+                console.error(msg);
+                vars.UI.addMessageToYTLog(msg, '#ff3030');
                 return;
             };
 
@@ -79,16 +83,24 @@ var vars = {
                 if (index>-1) { // index is valid
                     missingImages.splice(index,1); // remove the file from the missing array
                     vars.App.getMVImage(item.filename); // add the image to the images div
+
+                    let msg = 'Extrusion Successful!';
+                    vars.UI.addMessageToYTLog(msg, '#30ff30');
                 };
             });
 
             if (missingImages.length) {
-                console.warn(`Some music videos errored when attempting to generate their image sheet\n`, missingImages);
+                let msg = 'Some music videos errored when attempting to generate their image sheet';
+                console.warn(`${msg}\n`, missingImages);
+                vars.UI.addMessageToYTLog(msg, '#ff3030');
             };
         },
         dealWithOptionsUpdate: (rs)=> {
             rs = JSON.parse(rs);
             if (rs.ERROR) { console.error(rs.ERROR); };
+        },
+        dealWithSendLyricsResponse: (rs)=> {
+            debugger;
         },
         dealWithYTGet: (rs)=> {
             rs = JSON.parse(rs);
@@ -103,8 +115,13 @@ var vars = {
                     colour = '#ff8030';
                 };
             } else {
+                msg += 'Download successful.<br/>Images will be generated in the background.';
                 msg += rs['ytRequest'].join('<br/>');
                 msg += rs['ytResponse'];
+
+                // request getFiles, which in turn will generate the image spritesheet and config file
+                let fV = vars.files;
+                fV.getFiles('getFiles.php',fV.dealWithResponseFromGetFiles);
             };
             //console.log(html);
             vars.UI.addMessageToYTLog(msg, colour);
@@ -189,9 +206,22 @@ var vars = {
 
             return index>-1 ? true : false;
         },
+        sendLyricsToServer: (overwrite=false)=> {
+            let fV = vars.files;
+            let lyrics = vars.UI.getElementByID('lyrics').value;
+            if (!lyrics.trim().length) return `Lyrics text area is empty!`;
+
+            let postVars = `?sha=${sha}&lyrics=${encodeURIComponent(lyrics)}`
+            overwrite && (postVars+=`overwrite=true`);
+
+            debugger;
+            let url = 'uploadLyrics.php' + postVars;
+            // send the lyrics to the server and wait for response
+            fV.getFiles(url,fV.dealWithSendLyricsResponse);
+        },
 
         updateOptions: (which,option,sha)=> {
-            let allowed = ['introEnd','outroStart','lyrics']; // TODO Add override option for main image
+            let allowed = ['introEnd','outroStart','lyrics'];
             if (!option || !checkType(which,'string') || sha.length!==64) return false;
 
             if (!allowed.includes(which)) {
@@ -274,10 +304,12 @@ var vars = {
 
     // APP
     App: {
+        floatingButtonsVisible: false,
         linkArray: [],
         selectedMusicVideos: [],
         shuffling: false,
         tableColumns: null,
+        unselectedRandomise: false,
 
         // ENTRY FUNCTION
         init: ()=> {
@@ -307,7 +339,7 @@ var vars = {
             vars.localStorage.saveOptions();
 
             // redraw the list
-            vars.UI.buildMusicVideoList();
+            vars.UI.buildList();
 
             // hide the popup
             vars.UI.showDeletePopUp(false);
@@ -427,7 +459,7 @@ var vars = {
             vars.localStorage.saveMVImageOffset(sha,offset);
         },
 
-        shuffleMusicVideos: (e,div)=> {
+        shuffleMusicVideos: ()=> {
             let aV = vars.App;
             if (aV.shuffling) return;
             aV.shuffling=true;
@@ -435,21 +467,29 @@ var vars = {
             vars.DEBUG && console.log(`Shuffle started...`);
             let fV = vars.files;
             let completeList = [...fV.musicVideoArray];
+
             // First. If we have selected videos, remove them from the file list
             let sV = [];
-            aV.selectedMusicVideos.forEach((sMV)=> {
-                sV.push(`${sMV[0]}.${sMV[1]}`);
-            });
+            if (aV.selectedMusicVideos.length) {
+                aV.selectedMusicVideos.forEach((sMV)=> {
+                    sV.push(`${sMV[0]}.${sMV[1]}`);
+                });
+            } else {
+                aV.unselectedRandomise=true;
+            };
             sV.forEach((sMV)=> {
                 let idx = completeList.findIndex(m=>m===sMV);
                 idx>-1 && completeList.splice(idx,1);
             });
+
+            // now shuffle both arrays
             shuffle(sV);
             shuffle(completeList);
+            // join them back together again
             fV.musicVideoArray = [...sV,...completeList];
 
             // RE-ORDER ALL THE VIEWS
-            vars.UI.buildMusicVideoList(); // also builds the table
+            vars.UI.buildList(); // also builds the table and image views
 
             // reset the shuffling var
             setTimeout(()=> {
@@ -459,10 +499,23 @@ var vars = {
         },
 
         update: ()=> {
-            if (vars.UI.getElementByID('video').paused) return;
-            if (!vars.App.video.currentMusicVideoOptions.outroStart) return;
+            // CHECK IF VIDEO IS PLAYING
+            let video = vars.UI.getElementByID('video');
+            if (!video.paused) {
+                if (vars.App.video.currentMusicVideoOptions.outroStart) {
+                    (video.currentTime>vars.App.video.currentMusicVideoOptions.outroStart) && vars.App.video.playNext();
+                };
+            };
+            // END
 
-            (vars.UI.getElementByID('video').currentTime>vars.App.video.currentMusicVideoOptions.outroStart) && vars.App.video.playNext();
+
+            // CHECK IF FLOATING PLAY BUTTONS SHOULD BE VISIBLE
+            if (window.scrollY>=307) {
+                vars.UI.showFloatingButtons(true);
+            } else {
+                vars.UI.showFloatingButtons(false);
+            };
+            // END
         },
 
         updateTableColumns: (init=false)=> {
@@ -493,9 +546,9 @@ var vars = {
 
         video: {
             currentMusicVideoOptions: null,
+            interval: null,
             playlist: null,
             seeking: false,
-            interval: null,
 
             init: ()=> {
                 var v = vars.UI.getElementByID('video');
@@ -520,18 +573,12 @@ var vars = {
             generatePlaylist: ()=> {
                 let playlist = [];
 
-                let list = vars.UI.getElementByID('list');
-                
-                for (let l in list.children) {
-                    if ((l*1).toString()!=='NaN') {
-                        let mv = list.children[l];
-                        let c = mv.firstChild.firstChild;
-                        let mvName = c.getAttribute('data-text').replaceAll("\\'", "'");
-                        let extension = c.getAttribute('data-extension');
-
-                        playlist.push([mvName,extension]);
-                    };
-                };
+                vars.files.musicVideoArray.forEach((mVI)=> {
+                    let mvArray = mVI.split('.');
+                    let extension = mvArray.pop();
+                    let mvName = mvArray.join('.');
+                    playlist.push([mvName,extension]);
+                });
 
                 vars.App.selectedMusicVideos = playlist;
             },
@@ -665,6 +712,7 @@ var vars = {
                 if (show) {
                     v.className = 'fade-in-flex';
                     v.style.zIndex=10;
+                    v.style.top = `${window.scrollY}px`;
                     document.body.style.overflowY='hidden';
                     return;
                 };
@@ -673,7 +721,6 @@ var vars = {
                 document.body.style.overflowY='';
 
                 vars.UI.getElementByID('video').pause();
-
             }
         }
     },
@@ -775,19 +822,48 @@ var vars = {
 
         enableShuffleButton: (enable=true)=> {
             let aV = vars.App;
-            let div = vars.UI.getElementByID('shuffleButton');
+            let gID = vars.UI.getElementByID;
+            let div = gID('shuffleButton');
+            let rndDiv = gID('randomiseFloating');
             if (enable) {
                 div.style.opacity=1;
+                rndDiv.style.opacity=1;
                 aV.shuffling=false;
             } else {
                 div.style.opacity=0.33;
+                rndDiv.style.opacity=0.33;
             };
+        },
+
+        floatingPlayButtonClick: ()=> {
+            let aV = vars.App;
+            let vV = aV.video;
+
+            if (!aV.selectedMusicVideos.length && !aV.unselectedRandomise) {
+                vars.UI.shakeFloatingPlayButton();
+                return;
+            };
+            
+            if (!aV.selectedMusicVideos.length) {
+                vars.App.video.generatePlaylist();
+            };
+
+            vV.show();
+            vV.playNext();
+        },
+
+        playButtonClick: ()=> {
+            vars.input.floatingPlayButtonClick();
         }
+
     },
 
     UI: {
         buildComplete: false,
         currentView: 'list',
+        intervals: {
+            floatingPlayButton: null,
+        },
         viewNames: ['List', 'Table', 'Images (small)', 'Images (large)'],
         views: ['list','table','images-s','images-l'],
 
@@ -799,7 +875,7 @@ var vars = {
             
             vars.App.updateTableColumns(true);
 
-            vars.UI.buildMusicVideoList();
+            vars.UI.buildList();
         },
 
         addMessageToYTLog: (msg='', colour='#ffffff')=> {
@@ -846,7 +922,7 @@ var vars = {
             };
         },
 
-        buildMusicVideoList: ()=> {
+        buildList: ()=> {
             let aV = vars.App;
             let fV = vars.files;
             let UI = vars.UI;
@@ -856,7 +932,7 @@ var vars = {
             let html = '';
             let listDOM = UI.getElementByID('list');
 
-            let selected = vars.App.selectedMusicVideos;
+            let selected = aV.selectedMusicVideos;
 
             let id = 0;
 
@@ -885,7 +961,7 @@ var vars = {
             // build the table
             UI.buildTable();
             let mVI = UI.getElementByID('musicVideoImages');
-            mVI.children && mVI.children.length ? vars.UI.reorderImagesView() : vars.UI.buildImagesView();
+            mVI.children && mVI.children.length ? UI.reorderImagesView() : UI.buildImagesView();
         },
 
         buildTable: ()=> {
@@ -918,17 +994,33 @@ var vars = {
         },
 
         checkAll(check=true, invert=false) { // if invert is true, "check" is ignored        
-            let list = vars.UI.getElementByID('list').children;
+            let UI = vars.UI;
+            let lA = vars.App.linkArray;
+            let gID = UI.getElementByID;
+
+            let list = gID('list').children; 
+
             let files = [];
             for (let l in list) {
                 if ((l*1).toString()!=='NaN') { 
                     let c = list[l].firstChild.firstChild;
                     if (!invert) { c.checked = check; } else { c.checked = !c.checked; };
 
+                    let valid = lA.find(m=>m[0]===c.id) || null;
+                    if (!valid) { continue; };
+                    
+                    let mvName= valid[1];
+                    let extension = valid[2];
+                    let sha = valid[3];
+
                     if (c.checked) {
-                        let extension = c.getAttribute('data-extension');
-                        let mvName = c.getAttribute('data-text').replaceAll("\\'","'");
                         files.push([mvName,extension]);
+                        // highlight the other views
+                        UI.getViewImageDiv(sha).className = 'flex-image image-selected';
+                        UI.getViewTableDiv(sha).className = 'list-item item-selected';
+                    } else { // unhighlight this on other views
+                        UI.getViewImageDiv(sha).className = 'flex-image';
+                        UI.getViewTableDiv(sha).className = 'list-item';
                     };
                 };
             };
@@ -942,6 +1034,17 @@ var vars = {
             if (!id) return false;
 
             return document.getElementById(id);
+        },
+
+        getViewImageDiv: (sha)=> {
+            if (!sha || sha.length!==64) return;
+
+            return vars.UI.getElementByID(sha);
+        },
+        getViewTableDiv: (sha)=> {
+            if (!sha || sha.length!==64) return;
+
+            return vars.UI.getElementByID(`table_${sha}`);
         },
 
         highlightMVImage: (e, div, direct=false)=> {
@@ -1026,6 +1129,23 @@ var vars = {
             tableDiv.innerHTML = html;
         },
 
+        shakeFloatingPlayButton: ()=> {
+            let pBF = vars.UI.getElementByID('playButtonFloating');
+            let frames = 10;
+            let frame = 0;
+            let intervalNumber = setInterval(()=> {
+                if (frame<frames) {
+                    let className = frame%2 ? 'pBFLeft' : 'pBRight';
+                    pBF.className = className;
+                    frame++;
+                    return;
+                };
+
+                pBF.className='';
+                clearInterval(intervalNumber);
+            },1000/30);
+        },
+
         showDeletePopUp: (show=true)=> {
             if (show && !vars.App.selectedMusicVideos.length) return;
 
@@ -1043,6 +1163,21 @@ var vars = {
         showChangeMVImageButton: (show=true)=> {
             let div = vars.UI.getElementByID('nextMusicVideoImage');
             div.className = show ? '' : 'hidden';
+        },
+
+        showFloatingButtons: (show=true)=> {
+            let aV = vars.App;
+            let className = ''; // default for show=true
+            if (show && !aV.floatingButtonsVisible) {
+                aV.floatingButtonsVisible=true;
+            } else if (!show && aV.floatingButtonsVisible) {
+                aV.floatingButtonsVisible=false;
+                className = 'hidden';
+            } else {
+                return;
+            };
+
+            vars.UI.getElementByID('floatingButtonsContainer').className = className;
         },
 
         showTable: (show=true)=> {

@@ -15,6 +15,31 @@
     z-index: -10;
 }
 
+#video {
+    border: 2px solid #ff9100;
+    padding: 5px 5px;
+}
+
+#vAndLContainer {
+    display: flex;
+}
+#lyricsContainer {
+    display: flex;
+    flex-direction: column;
+}
+#lyricsHeader {
+    align-content: center;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+}
+#lyrics {
+    background-color: #1a2632;
+    color: #bed5ff;
+    height: 440px;
+    width: 320px;
+}
+
 #videoButtons {
     display: flex;
 }

@@ -56,6 +56,29 @@
     color: #ffffff;
 }
 
+#floatingButtonsContainer {
+    position: fixed;
+    right: 5px;
+    top: 0px;
+}
+#floatingPlayButtons {
+    display: flex;
+    flex-direction: column;
+    height: 225px;
+    justify-content: space-between;
+    margin: 14px 8px;
+}
+
+#playButtonFloating {
+    position: relative;
+}
+.pBFLeft {
+    right: -10px;
+}
+.pBFLeft {
+    right: 10px;
+}
+
 #searchListContainer {
     align-content: center;
     display: flex;

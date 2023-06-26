@@ -71,7 +71,10 @@ if (!$savedAs || !is_file($savedAs)) {
     $op['log'] = 'Unable to find the file name of the video! Unable to rename the file.';
 } else {
     $rename = trim(str_replace($replace, "", $savedAs));
-    if (strlen($rename)>4) { rename($savedAs,$rename); $op['filename_clean'] = $rename; }; // new file name looks good, rename it
+    if (strlen($rename)>4) { // new file name looks good, rename it
+        rename($savedAs,$rename); $op['filename_clean'] = $rename;
+        $op['sha256'] = hash('sha256', $rename);
+    };
 };
 
 

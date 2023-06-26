@@ -7,9 +7,11 @@
     width: 100%;
 }
 #list .li {
+    background-color: #272935;
+    border: 2px solid #252633;
     display: flex;
     padding: 1px;
-    margin: 0px;
+    margin: 0 0 2px 0;
 }
 
 #list .li .option_select {
