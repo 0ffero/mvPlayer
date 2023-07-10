@@ -7,7 +7,7 @@ $drive = "../assets/musicVideos/";
 $imageFolder = '../assets/mvimages/';
 
 $optionsDefaults = json_encode(["introEnd"=>0,"outroStart"=>null,"musicVideoImageOverride"=>false,"lyrics"=>'']);
-
+$genreDefaults = json_encode([]);
 /*  
     ***********************
     * GET ALL VIDEO FILES *
@@ -32,8 +32,18 @@ foreach($scan as $entry) {
             $options = file_get_contents($optFile);
         };
 
+        // get the new GENRES file
+        $genreFile = $folder . '/genres.cfg';
+        $genres = $genreDefaults;
+        if (!is_file($genreFile)) { // genres.cfg doesnt exist yet
+            // generate a default genres.cfg for this sha
+            file_put_contents($genreFile, $genres);
+        } else { // GENRES file exists, load it
+            $genres = file_get_contents($genreFile);
+        };
+
         // add the data to the files object
-        $files[]=["mvName"=>htmlentities($entry), "sha256"=>$sha, "hasImages"=>$hasImages, "options"=>json_decode($options)];
+        $files[]=["mvName"=>htmlentities($entry), "sha256"=>$sha, "hasImages"=>$hasImages, "options"=>json_decode($options), "genres"=>json_decode($genres)];
     };
 };
 sort($files);

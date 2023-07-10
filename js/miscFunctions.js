@@ -3,17 +3,6 @@ String.prototype.capitalise = function() {
     return this.charAt(0).toUpperCase() + this.slice(1);
 };
 
-var angleRealToPhaser = (_angle=0)=> {
-    if (typeof _angle !=='number') return false;
-
-    return _angle<=270 ? _angle-90 : _angle-450;
-};
-
-function angleReflect(incidenceAngle, surfaceAngle){
-    let a = surfaceAngle * 2 - incidenceAngle;
-    return a >= 360 ? a - 360 : a < 0 ? a + 360 : a;
-};
-
 function arraySortByKey(array, key) {
     if (!Array.isArray(array)) return false;
     return array.sort(function(a, b) {

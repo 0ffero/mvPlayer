@@ -118,6 +118,32 @@ a:hover { color: deepskyblue; }
     zoom: 0.5;
 }
 
+#floatingGenresContainer {
+    position: fixed;
+    width: 200px;
+    top: 10px;
+    right: 90px;
+}
+#floatingGenres {
+    background-color: #bed5ff;
+    display: flex;
+    flex-direction: column;
+}
+.genre {
+    background-color: #1a2632;
+    border: 1px solid #2e303e;
+    margin: 1px;
+    padding: 2px 10px;
+}
+#floatingGenres .highlight {
+    background: linear-gradient(90deg, rgba(26,38,50,1) 0%, rgba(26,38,50,1) 75%, rgba(52,128,183,1) 100%);
+}
+
+.genre:hover {
+    padding: 2px 20px;
+    cursor: pointer;
+}
+
 #viewBy {
     background-color: #009485;
     border-right: 2px solid #252633;

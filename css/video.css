@@ -22,6 +22,7 @@
 
 #vAndLContainer {
     display: flex;
+    justify-content: center;
 }
 #lyricsContainer {
     display: flex;
@@ -37,7 +38,19 @@
     background-color: #1a2632;
     color: #bed5ff;
     height: 440px;
-    width: 320px;
+}
+
+#lyricsButtons {
+    display: flex;
+}
+
+#uploadLyrics {
+    align-content: center;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    width: 240px !important;
 }
 
 #videoButtons {
@@ -51,7 +64,7 @@
     width: 640px;
 }
 
-#videoButtons .button, #videoOptions .button {
+#lyricsContainer .button, #videoButtons .button, #videoOptions .button {
     border: 2px solid #ff9100;
     border-radius: 17px;
     cursor: pointer;
@@ -61,11 +74,11 @@
     transition: 500ms;
     width: 200px;
 }
-#videoButtons .button:hover, #videoOptions .button:hover {
+#lyricsContainer .button:hover, #videoButtons .button:hover, #videoOptions .button:hover {
     background-color: #2d2d2d;
     border-radius: 0px;
 }
-#videoOptions .button {
+#lyricsContainer .button, #videoOptions .button {
     transition: 500ms;
 
     font-size: 12px;

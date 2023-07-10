@@ -24,6 +24,28 @@
     padding: 2px;
     width: 100%;
 }
-#list .listItem:hover {
-    background-color: #8badaf;
+#list .li:hover {
+    border: 2px solid rgba(52,128,183,1);
+}
+#list .genreButton {
+    background-color: #ff9100;
+    border-radius: 5px;
+    color: #3b0000;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 1px;
+    padding: 2px;
+    text-align: center;
+    width: 70px;
+}
+
+#list .genreList {
+    color: #bed5ff;
+    display: flex;
+    flex-direction: row;
+    font-size: 10px;
+    justify-content: flex-end;
+    margin: 1px;
+    padding: 2px;
+    width: 300px;
 }

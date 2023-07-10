@@ -14,12 +14,11 @@
         <link rel="stylesheet" href="css/table.css">
         <link rel="stylesheet" href="css/video.css">
         <link rel="stylesheet" href="css/yt-dl.css">
-        
-        
+
         <script src="assets/font/d40a0f0b1f.js"></script>
+
         <script src="js/miscFunctions.js"></script>
 
-        <script src="js/classes/App.js"></script>
         <script src="js/vars.js"></script>
 
         <script defer src="js/init.js"></script>
@@ -60,15 +59,23 @@
             </div>
             <div id="videoContainer" class="hidden">
                 <div id="vAndLContainer">
-                    <video id="video" width="640" height="480" autoplay controls onended="vars.App.video.playNext()"></video>
-                    <div id="lyricsContainer">
-                        <div id="lyricsHeader">LYRICS</div>
-                        <textarea id="lyrics"></textarea>
+                    <div> <!-- video section-->
+                        <video id="video" width="640" height="480" autoplay controls onended="vars.App.video.playNext()"></video>
+                        <div id="videoOptions">
+                            <div id="intro" class="button" onclick="vars.App.video.introEndSet()">INTRO END</div>
+                            <div id="outro" class="button" onclick="vars.App.video.outroStartSet()">OUTRO START</div>
+                        </div>
                     </div>
-                </div>
-                <div id="videoOptions">
-                    <div id="intro" class="button" onclick="vars.App.video.introEndSet()">INTRO END</div>
-                    <div id="outro" class="button" onclick="vars.App.video.outroStartSet()">OUTRO START</div>
+                    <div> <!-- lyrics section-->
+                        <div id="lyricsContainer">
+                            <div id="lyricsHeader">LYRICS</div>
+                            <textarea id="lyrics"></textarea>
+                            <div id="lyricsButtons">
+                                <div id="uploadLyrics" class="button" onclick="vars.App.searchForLyrics()">SEARCH</div>
+                                <div id="uploadLyrics" class="button" onclick="vars.files.sendLyricsToServer()">UPLOAD</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div id="comingUp">
                     <div id="comingUpList"></div>
@@ -109,6 +116,10 @@
                 <img id="playButtonFloating" src="assets/images/playButton.png" onclick="vars.input.floatingPlayButtonClick()">
                 <img src="assets/images/playAllButton.png" onclick="vV = vars.App.video;vV.show();vV.generatePlaylist();vV.playNext();">
             </div>
+        </div>
+
+        <div id="floatingGenresContainer" class="hidden">
+            <div id="floatingGenres"></div>
         </div>
     </body>
 </html>

@@ -15,20 +15,24 @@ var vars = {
 
                 
                 STILL TO DO:
-                    🞂 Finish adding lyrics code
-                    🞂 Add groups
+                    🞂 Music videos with a single quote arent unhighlighting (only when clicking on the list item itself - the check box is fine)
     */
     DEBUG: true,
     appID: 'mvp',
-    version: 1.01,
+    version: 1.11,
 
     init: ()=> {
         vars.localStorage.init();
 
         let fV = vars.files;
         fV.getFiles('getFiles.php',fV.dealWithResponseFromGetFiles);
+        fV.getAllLyrics();
 
-        vars.UI.getElementByID('version').innerHTML = `v${vars.version}`;
+        let gID = vars.UI.getElementByID;
+        gID('version').innerHTML = `v${vars.version}`;
+        
+        // set up the floating genres container
+        vars.UI.initFloatingGenres();
     },
 
     files: {
@@ -36,7 +40,11 @@ var vars = {
         filteredForSearch: [],
         missingImages: [],
         musicVideoArray: [],
+        overwriteLyrics: false,
 
+        dealWithResponseFromGetAllLyrics: (rs)=> {
+            vars.App.lyricsArray = JSON.parse(rs);
+        },
         dealWithResponseFromGetFiles: (rs)=> {
             let fV = vars.files;
 
@@ -99,8 +107,20 @@ var vars = {
             rs = JSON.parse(rs);
             if (rs.ERROR) { console.error(rs.ERROR); };
         },
-        dealWithSendLyricsResponse: (rs)=> {
+        dealWithSaveGenreResponse: (rs)=> {
+            rs = JSON.parse(rs);
+            if (rs.valid) return;
+
+            console.error(rs.ERROR);
             debugger;
+        },
+        dealWithSendLyricsResponse: (rs)=> {
+            rs = JSON.parse(rs);
+            if (rs.ERROR) { console.error(rs.ERROR); return; };
+
+            // if we get here, everything was good, reload the lyrics
+            vars.DEBUG && console.log(`Lyrics were updated successfully.`);
+            vars.files.getAllLyrics();
         },
         dealWithYTGet: (rs)=> {
             rs = JSON.parse(rs);
@@ -136,6 +156,15 @@ var vars = {
             let fV = vars.files;
             fV.getFiles('generateVideoImages.php', fV.dealWithResponseFromImageGenerator);
         },
+
+        getAllLyrics: ()=> {
+            let fV = vars.files;
+
+            let url = 'getAllLyrics.php';
+            let callback = fV.dealWithResponseFromGetAllLyrics;
+            fV.getFiles(url, callback);
+        },
+
         getFiles: (url,callback)=> {
             url = vars.files.endpoint + url;
             let xmlHttp = new XMLHttpRequest();
@@ -147,6 +176,20 @@ var vars = {
             xmlHttp.open("GET", url, true); // true for asynchronous 
             xmlHttp.send(null);
         },
+
+        getFilesPOST: (url, post, callback)=> {
+            url = vars.files.endpoint + url;
+            let xmlHttp = new XMLHttpRequest();
+            xmlHttp.onreadystatechange = function() { 
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    callback(xmlHttp.responseText);
+                };
+            };
+            xmlHttp.open("POST", url, true); // true for asynchronous 
+            xmlHttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xmlHttp.send(post);
+        },
+
         getMVNameAndExtension: (sha)=> {
             if (!sha || sha.length!==64) return false;
 
@@ -181,20 +224,12 @@ var vars = {
         getYT: (id)=> {
             if (id.length!==11) return false;
 
-            let params = `id=${id}`
-            
+            let endpoint = 'downloadYT.php';
+            let post = `id=${id}`
             let callback = vars.files.dealWithYTGet;
-            let endpoint = `${vars.files.endpoint}downloadYT.php`;
 
-            let xmlHttp = new XMLHttpRequest();
-            xmlHttp.onreadystatechange = function() { 
-                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
-                    callback(xmlHttp.responseText);
-                };
-            };
-            xmlHttp.open("POST", endpoint, true); // true for asynchronous 
-            xmlHttp.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-            xmlHttp.send(params);
+            // update the views by requesting the updated list
+            vars.files.getFilesPOST(endpoint,post,callback);
         },
 
         removeMusicVideoFromList: (mvName)=> {
@@ -206,18 +241,39 @@ var vars = {
 
             return index>-1 ? true : false;
         },
-        sendLyricsToServer: (overwrite=false)=> {
+
+        saveGenre: (sha,genre)=> {
+            if (!sha || sha.length!==64 || !genre) return 'Invalid sha!';
+            
             let fV = vars.files;
+            let url = 'saveGenre.php';
+            let post = `sha=${sha}&genre=${genre}`;
+
+            fV.getFilesPOST(url, post, fV.dealWithSaveGenreResponse);
+        },
+
+        sendLyricsToServer: ()=> {
+            let fV = vars.files;
+            let overwrite = fV.overwriteLyrics;
+            
             let lyrics = vars.UI.getElementByID('lyrics').value;
             if (!lyrics.trim().length) return `Lyrics text area is empty!`;
+            
+            let options = vars.App.video.currentMusicVideoOptions;
+            let sha = options.sha256;
+            let savedLyrics = vars.App.findLyricsBySha(sha);
 
-            let postVars = `?sha=${sha}&lyrics=${encodeURIComponent(lyrics)}`
-            overwrite && (postVars+=`overwrite=true`);
+            if (savedLyrics && savedLyrics.lyrics===lyrics) {
+                console.warn('Lyrics havent changed!')
+                return;
+            };
 
-            debugger;
-            let url = 'uploadLyrics.php' + postVars;
+            let post = `sha=${sha}&lyrics=${encodeURIComponent(lyrics)}`;
+            overwrite && (post+=`&overwrite=true`);
+
+            let url = 'uploadLyrics.php';
             // send the lyrics to the server and wait for response
-            fV.getFiles(url,fV.dealWithSendLyricsResponse);
+            fV.getFilesPOST(url, post, fV.dealWithSendLyricsResponse);
         },
 
         updateOptions: (which,option,sha)=> {
@@ -305,7 +361,26 @@ var vars = {
     // APP
     App: {
         floatingButtonsVisible: false,
+        genres: {
+            blues: [],
+            comedy: [],
+            dance: [],
+            dubstep: [],
+            electronic: [],
+            folk: [],
+            grunge: [],
+            hiphop: [],
+            indie: [],
+            industrial: [],
+            metal: [],
+            misc: [],
+            pop: [],
+            punk: [],
+            rap: [],
+            rock: [],
+        },
         linkArray: [],
+        lyricsArray: [],
         selectedMusicVideos: [],
         shuffling: false,
         tableColumns: null,
@@ -389,6 +464,40 @@ var vars = {
             };
         },
 
+        findLyricsBySha: (sha)=> {
+            return vars.App.lyricsArray.find(m=>m.sha===sha) || null;
+        },
+
+        genreClick: (e,div)=> {
+            let genre = div.id.split('_')[1];
+
+            let highlighted = div.className.includes('highlight');
+            let adding = true;
+            if (!highlighted) { // highlight the genre
+                div.className = 'genre highlight';
+                // add it to the mvA
+            } else { // unhighlight
+                div.className = 'genre';
+                // remove it from mvA
+                adding=false;
+            };
+
+            // get the genres for this video by sha
+            let sha = vars.UI.currentlyOver;
+            let mvO = vars.files.musicVideoObject.find(m=>m.sha256===sha);
+            let genres = mvO.genres;
+            // add/remove genre from array
+            if (adding) {
+                genres.push(genre);
+            } else {
+                let index = genres.findIndex(m=>m===genre);
+                genres.splice(index,1);
+            };
+
+            // call endpoint to add/remove genre
+            vars.files.saveGenre(sha,genre);
+        },
+
         getMVExtension: (mv)=> {
             let extension = mv.split('.');
             return extension[extension.length-1];
@@ -433,6 +542,17 @@ var vars = {
 
             options.options.sha256 = options.sha256;
             return options.options;
+        },
+
+        searchForLyrics: ()=> {
+            let options = vars.App.video.currentMusicVideoOptions;
+            if (!options) return;
+
+            if (options.sha256) {
+                let mv = vars.files.getMVNameAndExtension(options.sha256);
+                let searchString = `${mv.mvName} lyrics`;
+                window.open(`https://www.google.com/search?q=${searchString}`);
+            };
         },
 
         showNextMVImage: (event,divDOM)=> {
@@ -505,6 +625,11 @@ var vars = {
                 if (vars.App.video.currentMusicVideoOptions.outroStart) {
                     (video.currentTime>vars.App.video.currentMusicVideoOptions.outroStart) && vars.App.video.playNext();
                 };
+
+                // update the scroll position of the lyrics if necessary
+                if (vars.UI.scrollLyrics && vars.UI.scrollTotalDistance) {
+                    vars.UI.scrollLyricsTextArea();
+                };
             };
             // END
 
@@ -559,6 +684,7 @@ var vars = {
                 },250);
 
                 v.oncanplay = ()=> {
+                    vV.scrollLyricsInit();
                     if (vV.seeking) { vV.seeking=false; return; }
                     if (!vV.currentMusicVideoOptions.introEnd) return;
 
@@ -696,15 +822,43 @@ var vars = {
                 let extension = nextMusicVideo[1];
                 // get the options for tihs file
                 aV.video.currentMusicVideoOptions = aV.getOptionsForMusicVideo(`${mvName}.${extension}`);
+                // grab the lyrics
+                let sha = aV.video.currentMusicVideoOptions.sha256;
+                let lO = aV.findLyricsBySha(sha);
+                lO && (vars.UI.getElementByID('lyrics').value=lO.lyrics);
 
                 // un-select this music video
-                let sha = aV.video.currentMusicVideoOptions.sha256;
                 vars.input.clickOnWhich('list',sha);
 
                 // play the video
                 let v = vars.UI.getElementByID('video');
                 let folder = './assets/musicVideos';
                 v.src=`${folder}/${mvName}.${extension}`;
+            },
+
+            scrollLyricsInit: ()=> {
+                console.log(`%cScroll Lyrics Init`,'colour: #30FF30');
+                let UI = vars.UI;
+                let lyricsDiv = UI.getElementByID('lyrics');
+                let divHeight = lyricsDiv.offsetHeight;
+                let scrollHeight = lyricsDiv.scrollHeight;
+
+                let scrollLyrics = UI.scrollLyrics = scrollHeight<=divHeight ? false : true;
+
+                if (!scrollLyrics) { // lyrics dont exist
+                    // empty the textarea & reset the vars
+                    lyricsDiv.value='';
+                    UI.scrollLyrics=false;
+                    UI.scrollTotalDistance=0;
+                    return;
+                };
+
+                let aVV = vars.App.video;
+                let videoDiv = aVV.getVideoDiv();
+                let videoLength = videoDiv.duration;
+                aVV.currentMusicVideoOptions.videoLength = videoLength;
+
+                UI.scrollTotalDistance = scrollHeight-divHeight;
             },
 
             show: (show=true)=> {
@@ -860,10 +1014,13 @@ var vars = {
 
     UI: {
         buildComplete: false,
+        currentlyOver: '',
         currentView: 'list',
         intervals: {
             floatingPlayButton: null,
         },
+        scrollLyrics: false,
+        scrollTotalDistance: 0,
         viewNames: ['List', 'Table', 'Images (small)', 'Images (large)'],
         views: ['list','table','images-s','images-l'],
 
@@ -876,6 +1033,16 @@ var vars = {
             vars.App.updateTableColumns(true);
 
             vars.UI.buildList();
+        },
+
+        initFloatingGenres: ()=> {
+            let fG = vars.UI.getElementByID('floatingGenres');
+            let html = '';
+            let genres = vars.App.genres;
+            for (let _g in genres) {
+                html += `<div id="genre_${_g}" class="genre" onclick="vars.App.genreClick(event,this)">${_g.capitalise()}</div>`;
+            };
+            fG.innerHTML = html;
         },
 
         addMessageToYTLog: (msg='', colour='#ffffff')=> {
@@ -941,12 +1108,15 @@ var vars = {
                 let extension = aV.getMVExtension(mv);
                 let mvName = aV.getMVName(mv);
                 let sha = vars.files.getShaForMusicVideo(mv);
+                let genres = vars.files.musicVideoObject.find(m=>m.sha256===sha).genres.join(', ');
 
                 let checked = selected.findIndex(m=>m[0]===mvName)>-1 ? 'checked': '';
 
-                html+=`<div data-sha="${sha}" class="li">`;
+                html+=`<div data-sha="${sha}" class="li" onmouseenter="vars.UI.showGenreButton(event,this,true)" onmouseleave="vars.UI.showGenreButton(event,this,false)">`;
                 html+=`<div id="option_${sha}" class="option_select"><input id="checkbox_${id}" type="checkbox" ${checked} onclick="vars.input.click(event,this);"></div>`;
                 html+=`<div id="list_${sha}" class="listItem" onclick="vars.input.click(event,this)">${mvName}</div>`;
+                html+=`<div class="genreList">${genres}</div>`;
+                html+='<div class="genreButton hidden" onclick="vars.UI.showFloatingGenresContainer(event,this,true)">GENRE</div>';
                 html+='</div>';
 
                 linkArray.push([`checkbox_${id}`,mvName,extension,sha]);
@@ -1047,6 +1217,17 @@ var vars = {
             return vars.UI.getElementByID(`table_${sha}`);
         },
 
+        highlightGenres: (genres)=> {
+            // first, unhighlight all genres
+            vars.UI.unhighlightAllGenres();
+
+            // start highlighting for this music video
+            let gID = vars.UI.getElementByID;
+            genres.forEach((g)=> {
+                gID(`genre_${g}`).className = 'genre highlight';
+            });
+        },
+
         highlightMVImage: (e, div, direct=false)=> {
             div.className.includes('image-selected') ? div.className = 'flex-image' : div.className = 'flex-image image-selected';
             
@@ -1120,6 +1301,19 @@ var vars = {
             vars.DEBUG && console.log(`Images View took ${new Date()-tStart}ms to reorder`);
         },
 
+        scrollLyricsTextArea: ()=> {
+            if (!vars.UI.scrollLyrics) return;
+
+            let videoDiv = vars.App.video.getVideoDiv();
+            let cT = videoDiv.currentTime;
+            let tT = videoDiv.duration;
+
+            let offsetMult = cT/tT;
+
+            let textAreaScrollY = offsetMult * vars.UI.scrollTotalDistance;
+            vars.UI.getElementByID('lyrics').scroll(0,textAreaScrollY);
+        },
+
         setTableColumns: ()=> {
             let tableDiv = vars.UI.getElementByID('table');
             let html = '';
@@ -1178,6 +1372,50 @@ var vars = {
             };
 
             vars.UI.getElementByID('floatingButtonsContainer').className = className;
+        },
+
+        showFloatingGenresContainer: (e,div,show=true)=> {
+            let UI = vars.UI;
+            let fGC = UI.getElementByID('floatingGenresContainer');
+            
+            if (show) {
+                let gOffsetY = div.offsetTop;
+                // show the pop up (needed so we can get offsetHeight below - if its hidden its height will be 0)
+                fGC.className = '';
+
+                // reposition the fGC
+                let fGHeight = fGC.offsetHeight;
+                fGC.style.top = `${gOffsetY-(fGHeight/2)-window.scrollY}px`;
+
+                // highlight the genres assoc with this video
+                let sha = div.parentElement.dataset.sha;
+                // validate teh sha
+                if (sha.length!==64) return false;
+                
+                // find the genres array by sha
+                let found = vars.files.musicVideoObject.find(m=>m.sha256===sha);
+                if (!found) return false;
+                let genres = found.genres;
+                vars.UI.highlightGenres(genres);
+            } else {
+                fGC.className = 'hidden';
+            };
+        },
+
+        showGenreButton: (e,div,show=true)=> {
+            if (show) {
+                let UI = vars.UI;
+                div.lastChild.className = 'genreButton';
+                let sha = div.dataset.sha;
+                if (!sha || vars.UI.currentlyOver===sha) return;
+
+                // update the currently over sha and hide the floating genres container
+                UI.currentlyOver = div.dataset.sha;
+                UI.showFloatingGenresContainer(null,null,false);
+            } else {
+                // we are hiding the genre button, make sure the floating genres container is NOT visible
+                div.lastChild.className = 'genreButton hidden';
+            };
         },
 
         showTable: (show=true)=> {
@@ -1275,6 +1513,13 @@ var vars = {
             };
 
             vars.UI.getElementByID('comingUpList').innerHTML = html;
+        },
+
+        unhighlightAllGenres: ()=> {
+            let genres = document.getElementsByClassName('genre');
+            for (let g=0; g<genres.length; g++) {
+                genres[g].className = 'genre';
+            };
         }
     }
 };
