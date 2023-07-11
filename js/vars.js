@@ -11,7 +11,8 @@ var vars = {
                 LINUX:
                     Dont really know tbh. Im sure youll figure it out :)
 
-                IMPORTANT: Music videos should be in mp4 or webm format
+                IMPORTANT:
+                    Music videos should be in mp4 or webm format
 
                 
                 STILL TO DO:
@@ -19,7 +20,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: 1.11,
+    version: 1.12,
 
     init: ()=> {
         vars.localStorage.init();
@@ -822,10 +823,10 @@ var vars = {
                 let extension = nextMusicVideo[1];
                 // get the options for tihs file
                 aV.video.currentMusicVideoOptions = aV.getOptionsForMusicVideo(`${mvName}.${extension}`);
-                // grab the lyrics
+                // grab the lyrics (if any)
                 let sha = aV.video.currentMusicVideoOptions.sha256;
                 let lO = aV.findLyricsBySha(sha);
-                lO && (vars.UI.getElementByID('lyrics').value=lO.lyrics);
+                vars.UI.getElementByID('lyrics').value = lO ? lO.lyrics : '';
 
                 // un-select this music video
                 vars.input.clickOnWhich('list',sha);
@@ -870,9 +871,13 @@ var vars = {
                     document.body.style.overflowY='hidden';
                     return;
                 };
+
+                // Hide the video container
                 v.className='hidden';
                 v.style.zIndex=-10;
-                document.body.style.overflowY='';
+                document.fullscreenElement && document.exitFullscreen();
+                document.body.style.overflowY='scroll';
+                
 
                 vars.UI.getElementByID('video').pause();
             }
