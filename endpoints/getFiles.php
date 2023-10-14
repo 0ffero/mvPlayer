@@ -4,7 +4,7 @@ include('jsonHeaders.php');
 include('./tools/deltree.php');
 
 $drive = "../assets/musicVideos/";
-$imageFolder = '../assets/mvimages/';
+$imageFolder = '..\\assets\\mvimages\\';
 
 $optionsDefaults = json_encode(["introEnd"=>0,"outroStart"=>null,"musicVideoImageOverride"=>false,"lyrics"=>'']);
 $genreDefaults = json_encode([]);
@@ -20,11 +20,12 @@ foreach($scan as $entry) {
         $sha = hash('sha256', $entry);
         $shaArray[] = $sha; // these are used to check for unused image folders
         $folder = $imageFolder . $sha;
-        $hasImages = is_file($folder . '/all_extrude.jpg') ? true : false;
+        if (!is_dir($folder)) { mkdir($folder); };
+        $hasImages = is_file($folder . '\\all_extrude.jpg') ? true : false;
 
         // deal with the OPTIONS files
         $options = $optionsDefaults;
-        $optFile = $folder . '/options.cfg';
+        $optFile = $folder . '\\options.cfg';
         if (!is_file($optFile)) { // options.cfg doesnt exist yet
             // generate a default options.cfg for this sha
             file_put_contents($optFile, $options);
@@ -33,7 +34,7 @@ foreach($scan as $entry) {
         };
 
         // get the new GENRES file
-        $genreFile = $folder . '/genres.cfg';
+        $genreFile = $folder . '\\genres.cfg';
         $genres = $genreDefaults;
         if (!is_file($genreFile)) { // genres.cfg doesnt exist yet
             // generate a default genres.cfg for this sha

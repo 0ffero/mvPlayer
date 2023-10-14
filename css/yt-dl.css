@@ -36,9 +36,10 @@
     align-items: flex-start;
     border: 2px solid #ff9100;
     display: flex;
-    flex-wrap: wrap;
-    flex-direction: column-reverse;
+    flex-wrap: nowrap;
+    flex-direction: column;
     height: 250px;
+    overflow-x: hidden;
     width: 80%;
 }
 

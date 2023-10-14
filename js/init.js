@@ -43,9 +43,22 @@ window.addEventListener('keyup', (e)=> {
 
 window.onresize =()=> {
     vars.App.updateTableColumns();
+    vars.UI.updateWarningPopUpPosition();
 };
 
+document.body.addEventListener('contextmenu', (e)=> {
+    e.preventDefault();
+    if (e.target.id==='uploadLyrics') { // right click on upload lyrics button
+        vars.files.sendLyricsToServer(true);
+        return;
+    };
 
+    // show the floating genres selector
+    let UI = vars.UI;
+    let div = UI.getElementByID('floatingGenresContainer');
+    UI.showFloatingGenresContainer(e,div,true,true);
+    return false;
+}, false);
 
 
 vars.App.init();

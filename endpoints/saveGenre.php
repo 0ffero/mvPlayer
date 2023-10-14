@@ -38,7 +38,7 @@ $genre = strtolower($_POST['genre']);
 
 
 // check if the genre is valid
-$allowed = ['blues','comedy','dance','dubstep','electronic','folk','grunge','hiphop','indie','industrial','metal','misc','pop','punk','rap','rock'];
+$allowed = ['blues','comedy','dance','dubstep','electronic','folk','grunge','hiphop','indie','industrial','metal','misc','pop','punk','rap','remix','rock','techno'];
 
 if (!in_array($genre,$allowed)) {
     $op = ['valid'=>false];

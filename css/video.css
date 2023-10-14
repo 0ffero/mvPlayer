@@ -122,3 +122,19 @@
     padding-bottom: 0px;
     margin-bottom: 0px;
 }
+
+#currentlyPlayingPopUp {
+    background-color: rgba(0,0,0,0.75);
+    border: 2px solid #ff9100;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    font-size: 20px;
+    left: 5%;
+    padding: 10px 0 20px 0;
+    position: fixed;
+    text-align: center;
+    top: 95%;
+    width: 90%;
+    z-index: 2147483647;
+}

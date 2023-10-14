@@ -154,6 +154,24 @@ a:hover { color: deepskyblue; }
     width: 170px;
 }
 
+#warningPopUp {
+    background-image: url("../assets/images/warningBG.png");
+    font-size: 20px;
+    height: 207px;
+    left: 100px;
+    line-height: 30px;
+    padding-left: 200px;
+    padding-top: 30px;
+    position: fixed;
+    top: 100px;
+    width: 777px;
+    z-index: 20;
+}
+.closeWarning {
+    color: yellow;
+    font-size: 14px;
+}
+
 /* MULTIs */
 #videoContainer, #deletePopUp {
     margin: 0px;

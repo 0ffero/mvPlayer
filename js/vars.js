@@ -17,10 +17,12 @@ var vars = {
                 
                 STILL TO DO:
                     🞂 Music videos with a single quote arent unhighlighting (only when clicking on the list item itself - the check box is fine)
+                    🞂 Highlight by genre currently doesnt highlight the image views
+                    🞂 vars.UI.highlightMVImage isnt used anywhere. Can this be removed or was it to replace something?
     */
     DEBUG: true,
     appID: 'mvp',
-    version: 1.12,
+    version: 1.15,
 
     init: ()=> {
         vars.localStorage.init();
@@ -47,6 +49,7 @@ var vars = {
             vars.App.lyricsArray = JSON.parse(rs);
         },
         dealWithResponseFromGetFiles: (rs)=> {
+            let aV = vars.App;
             let fV = vars.files;
 
             let requestGenerateImages = false;
@@ -55,10 +58,15 @@ var vars = {
             fV.musicVideoObject = JSON.parse(rs);
             fV.filteredForSearch = [];
             let noImagesArray = [];
+            let genresList = aV.genres;
             // START PARSING THE RESPONSE FROM THE ENDPOINT
             vars.DEBUG && console.groupCollapsed(`%cFile RS. Building text and image lists.`,'color: #30ff30');
             fV.musicVideoObject.forEach((item)=> {
                 fV.musicVideoArray.push(item.mvName);
+                // add the shas to the genres associated with mvFile
+                item.genres.forEach((_i)=> {
+                    genresList[_i].push(item.sha256);
+                });
                 fV.filteredForSearch.push([item.mvName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace('.mp4','').replaceAll('.webm','').replaceAll(/[^0-9a-z-A-Z ]/g, ""), item.sha256]);
                 if (!item.hasImages) {
                     !requestGenerateImages && (requestGenerateImages=true);
@@ -78,23 +86,28 @@ var vars = {
         dealWithResponseFromImageGenerator: (rs)=> {
             rs = JSON.parse(rs);
 
-            if (rs[0].allImage.extrude==='failed') {
-                let msg = 'Extrusion FAILED!';
-                console.error(msg);
-                vars.UI.addMessageToYTLog(msg, '#ff3030');
-                return;
-            };
+            if (!rs.length) return 'ERROR: Image generater response was empty!';
+            
+            let fails=[];
 
             let fV = vars.files;
             let missingImages = fV.missingImages;
             rs.forEach((item)=> {
-                let index = missingImages.findIndex(m=>m===item.filename);
-                if (index>-1) { // index is valid
-                    missingImages.splice(index,1); // remove the file from the missing array
-                    vars.App.getMVImage(item.filename); // add the image to the images div
+                if (item.failed) {
+                    fails.push(item);
+                } else if (item.allImage.extrude==='failed') {
+                    let msg = 'Extrusion FAILED!';
+                    console.error(msg);
+                    vars.UI.addMessageToYTLog(msg, '#ff3030');
+                } else {
+                    let index = missingImages.findIndex(m=>m===item.filename);
+                    if (index>-1) { // index is valid
+                        missingImages.splice(index,1); // remove the file from the missing array
+                        vars.App.getMVImage(item.filename); // add the image to the images div
 
-                    let msg = 'Extrusion Successful!';
-                    vars.UI.addMessageToYTLog(msg, '#30ff30');
+                        let msg = 'Extrusion Successful!';
+                        vars.UI.addMessageToYTLog(msg, '#30ff30');
+                    };
                 };
             });
 
@@ -117,7 +130,13 @@ var vars = {
         },
         dealWithSendLyricsResponse: (rs)=> {
             rs = JSON.parse(rs);
-            if (rs.ERROR) { console.error(rs.ERROR); return; };
+            if (rs.ERROR) {
+                console.error(rs.ERROR);
+                if (rs.ERROR.includes('add the overwrite var')) {
+                    vars.UI.showWarningPopUp(true, 'Lyrics already exist!<br/>Right click on the UPLOAD button to reupload and overwrite.');
+                };
+                return;
+            };
 
             // if we get here, everything was good, reload the lyrics
             vars.DEBUG && console.log(`Lyrics were updated successfully.`);
@@ -253,9 +272,8 @@ var vars = {
             fV.getFilesPOST(url, post, fV.dealWithSaveGenreResponse);
         },
 
-        sendLyricsToServer: ()=> {
+        sendLyricsToServer: (force=false)=> {
             let fV = vars.files;
-            let overwrite = fV.overwriteLyrics;
             
             let lyrics = vars.UI.getElementByID('lyrics').value;
             if (!lyrics.trim().length) return `Lyrics text area is empty!`;
@@ -270,7 +288,7 @@ var vars = {
             };
 
             let post = `sha=${sha}&lyrics=${encodeURIComponent(lyrics)}`;
-            overwrite && (post+=`&overwrite=true`);
+            force && (post+=`&overwrite=true`);
 
             let url = 'uploadLyrics.php';
             // send the lyrics to the server and wait for response
@@ -378,11 +396,15 @@ var vars = {
             pop: [],
             punk: [],
             rap: [],
+            remix: [],
             rock: [],
+            techno: []
         },
         linkArray: [],
         lyricsArray: [],
         selectedMusicVideos: [],
+        selectedGenres: [],
+        showingSelectByGenre: false,
         shuffling: false,
         tableColumns: null,
         unselectedRandomise: false,
@@ -425,7 +447,7 @@ var vars = {
             let aV = vars.App;
 
             // does the video already exist in the selectedMusicVideos array?
-            let index = aV.selectedMusicVideos.findIndex(m=>m[0]===mv.replaceAll('\'',"\\'"));
+            let index = aV.selectedMusicVideos.findIndex(m=>m[0]===mv); //.replaceAll('\'',"\\'")
             if (index===-1) { // no, it doesnt... ADD it
                 aV.selectedMusicVideos.push([mv,ext]);
                 vars.DEBUG && console.log(`Added %c${mv}%c to selected videos list`, 'color: #60ff60','color: default');
@@ -469,6 +491,23 @@ var vars = {
             return vars.App.lyricsArray.find(m=>m.sha===sha) || null;
         },
 
+        generateDeselectByGenre: (genre)=> {
+            if (!genre) return "No genre passed!";
+
+            let aV = vars.App;
+            let genreSet = aV.genres[genre];
+            let sMV = aV.selectedMusicVideos;
+            genreSet.forEach((sha)=>{
+                let mv = vars.files.getMVNameAndExtension(sha); // get the video name
+                let mvName = mv.mvName;
+                let index = sMV.findIndex(m=>m[0]===mvName); // find the index in sMV
+                index>-1 && sMV.splice(index,1); // remove it
+            });
+
+            // request the build list
+            vars.UI.buildList();
+        },
+
         genreClick: (e,div)=> {
             let genre = div.id.split('_')[1];
 
@@ -476,13 +515,31 @@ var vars = {
             let adding = true;
             if (!highlighted) { // highlight the genre
                 div.className = 'genre highlight';
-                // add it to the mvA
             } else { // unhighlight
                 div.className = 'genre';
-                // remove it from mvA
                 adding=false;
             };
 
+            // is this the floating genres?
+            let aV = vars.App;
+            if (aV.showingSelectByGenre) {
+                if (adding) {
+                    // add this genre to the selectedByGenre array
+                    aV.selectedGenres.push(genre);
+                    // now tick the videos of the selected genre
+                    aV.video.generatePlaylistByGenre(genre);
+                } else {
+                    // remove this genre to the selectedByGenre array
+                    let index = aV.selectedGenres.findIndex(m=>m===genre);
+                    aV.selectedGenres.splice(index,1);
+                    //  now untick the files related to this genre
+                    vars.App.generateDeselectByGenre(genre);
+                };
+                return;
+            };
+
+
+            // no its related to a music video
             // get the genres for this video by sha
             let sha = vars.UI.currentlyOver;
             let mvO = vars.files.musicVideoObject.find(m=>m.sha256===sha);
@@ -494,6 +551,11 @@ var vars = {
                 let index = genres.findIndex(m=>m===genre);
                 genres.splice(index,1);
             };
+
+            // update the genres list for this sha
+            let option = vars.UI.getElementByID(`option_${sha}`);
+            let gL = option.parentElement.getElementsByClassName('genreList');
+            gL.length && (gL[0].innerHTML = genres.join(', '));
 
             // call endpoint to add/remove genre
             vars.files.saveGenre(sha,genre);
@@ -657,9 +719,8 @@ var vars = {
                 if (aV.tableColumns===2) return;
                 aV.tableColumns=2;
             };
-            console.log(`${aV.tableColumns} column table`);
-            
-            console.log(`Change in column count detected. Redrawing the mv table`);
+            vars.DEBUG && console.log(`${aV.tableColumns} column table`);
+            vars.DEBUG && console.log(`Change in column count detected. Redrawing the mv table`);
 
             vars.UI.setTableColumns();
 
@@ -673,28 +734,55 @@ var vars = {
         video: {
             currentMusicVideoOptions: null,
             interval: null,
+            loading: false,
             playlist: null,
-            seeking: false,
 
             init: ()=> {
                 var v = vars.UI.getElementByID('video');
                 var vV = vars.App.video;
 
                 vV.interval = setInterval(()=> {
-                    vars.App.update()
-                },250);
+                    vars.App.update();
+                }, 250);
 
                 v.oncanplay = ()=> {
+                    if (!vV.loading) return;
+
+                    vV.loading=false;
+                    vars.DEBUG && console.log(`Music video loaded. Init Scroll Lyrics and skipping intro (if any)`);
                     vV.scrollLyricsInit();
-                    if (vV.seeking) { vV.seeking=false; return; }
-                    if (!vV.currentMusicVideoOptions.introEnd) return;
 
                     let options = vV.currentMusicVideoOptions;
+                    // check for fullscreen
+                    if (document.fullscreenElement && document.fullscreenElement.id==='video') { // show the title pop up for the new music video
+                        // TODO This no longer works.. was only valid up to ~ Chrome 91.0
+                        // unfortunately it means using the fullscreen API - thats a big change!
+                        // an example can be seen here: https://dev.to/aws/html-video-with-fullscreen-chat-overlay-4jfl
+                        vars.UI.showCurrentlyPlayingPopUp(true,vV.currentMusicVideoOptions.title);
+                    };
+
+                    if (!options.introEnd) return;
 
                     // skip to the intro end position
                     v.currentTime = options.introEnd;
-                    vV.seeking = true;
                 };
+            },
+
+            generateOverrideImage: ()=> {
+                //draw( video, thecanvas, img ){
+ 
+                // get the canvas context for drawing
+                var context = thecanvas.getContext('2d');
+            
+                // draw the video contents into the canvas x, y, width, height
+                        context.drawImage( video, 0, 0, thecanvas.width, thecanvas.height);
+            
+                // get the image data from the canvas object
+                        var dataURL = thecanvas.toDataURL();
+            
+                // set the source of the img tag
+                img.setAttribute('src', dataURL);
+
             },
 
             generatePlaylist: ()=> {
@@ -708,6 +796,25 @@ var vars = {
                 });
 
                 vars.App.selectedMusicVideos = playlist;
+            },
+
+            generatePlaylistByGenre: (genre)=> {
+                if (!genre) return;
+            
+                let genres = vars.App.genres;
+                let shaList = genres[genre];
+
+                let aV = vars.App;
+                let mvList = [];
+                shaList.forEach((sha)=> {
+                    let mv = vars.files.getMVNameAndExtension(sha);
+                    if (aV.selectedMusicVideos.findIndex(m=>m[0]===mv.mvName)>-1) return;
+                    mvList.push([mv.mvName, mv.mvExt]);
+                });
+    
+                aV.selectedMusicVideos = [...aV.selectedMusicVideos,...mvList];
+                
+                vars.UI.buildList();
             },
 
             getVideoDiv: ()=> {
@@ -819,10 +926,11 @@ var vars = {
                 };
 
                 // next track is valid
-                let mvName = nextMusicVideo[0];
-                let extension = nextMusicVideo[1];
-                // get the options for tihs file
-                aV.video.currentMusicVideoOptions = aV.getOptionsForMusicVideo(`${mvName}.${extension}`);
+                let nextMusicVideoTitle = nextMusicVideo[0];
+                let mvFile = nextMusicVideo.join('.');
+                // get the options for this file
+                aV.video.currentMusicVideoOptions = aV.getOptionsForMusicVideo(mvFile);
+                aV.video.currentMusicVideoOptions.title = nextMusicVideoTitle;
                 // grab the lyrics (if any)
                 let sha = aV.video.currentMusicVideoOptions.sha256;
                 let lO = aV.findLyricsBySha(sha);
@@ -831,10 +939,11 @@ var vars = {
                 // un-select this music video
                 vars.input.clickOnWhich('list',sha);
 
-                // play the video
+                // load and play the video
+                aV.video.loading = true;
                 let v = vars.UI.getElementByID('video');
                 let folder = './assets/musicVideos';
-                v.src=`${folder}/${mvName}.${extension}`;
+                v.src=`${folder}/${mvFile}`;
             },
 
             scrollLyricsInit: ()=> {
@@ -1121,7 +1230,7 @@ var vars = {
                 html+=`<div id="option_${sha}" class="option_select"><input id="checkbox_${id}" type="checkbox" ${checked} onclick="vars.input.click(event,this);"></div>`;
                 html+=`<div id="list_${sha}" class="listItem" onclick="vars.input.click(event,this)">${mvName}</div>`;
                 html+=`<div class="genreList">${genres}</div>`;
-                html+='<div class="genreButton hidden" onclick="vars.UI.showFloatingGenresContainer(event,this,true)">GENRE</div>';
+                html+='<div class="genreButton hidden" onclick="vars.UI.showFloatingGenresContainer(event,this,true,false)">GENRE</div>';
                 html+='</div>';
 
                 linkArray.push([`checkbox_${id}`,mvName,extension,sha]);
@@ -1220,6 +1329,10 @@ var vars = {
             if (!sha || sha.length!==64) return;
 
             return vars.UI.getElementByID(`table_${sha}`);
+        },
+
+        getWarningPopUp: ()=> {
+            return vars.UI.getElementByID("warningPopUp");
         },
 
         highlightGenres: (genres)=> {
@@ -1363,6 +1476,17 @@ var vars = {
             let div = vars.UI.getElementByID('nextMusicVideoImage');
             div.className = show ? '' : 'hidden';
         },
+        showCurrentlyPlayingPopUp: (show=true, msg)=> {
+            if (show && !msg) return 'If youre showing the popup, it must have a msg with it (with the songs name)';
+
+            let cPPU = vars.UI.getElementByID('currentlyPlayingPopUp');
+            cPPU.className = show ? '' : 'hidden';
+
+            cPPU.timeout = setTimeout(()=> {
+                cPPU.className = 'hidden';
+                delete(cPPU.timeout);
+            },3000);
+        },
 
         showFloatingButtons: (show=true)=> {
             let aV = vars.App;
@@ -1379,31 +1503,84 @@ var vars = {
             vars.UI.getElementByID('floatingButtonsContainer').className = className;
         },
 
-        showFloatingGenresContainer: (e,div,show=true)=> {
+        showFloatingGenresContainer: (e,div,show=true,rightClick=false)=> {
             let UI = vars.UI;
             let fGC = UI.getElementByID('floatingGenresContainer');
             
-            if (show) {
-                let gOffsetY = div.offsetTop;
-                // show the pop up (needed so we can get offsetHeight below - if its hidden its height will be 0)
-                fGC.className = '';
+            if (!show) { fGC.className = 'hidden'; vars.App.showingSelectByGenre = false; return; }; // hiding the div?
 
-                // reposition the fGC
-                let fGHeight = fGC.offsetHeight;
-                fGC.style.top = `${gOffsetY-(fGHeight/2)-window.scrollY}px`;
+            // if we get here we're showing the div
+            let gOffsetY = div.offsetTop;
+            // show the pop up (needed so we can get offsetHeight below - if its hidden its height will be 0)
+            fGC.className = '';
 
-                // highlight the genres assoc with this video
-                let sha = div.parentElement.dataset.sha;
-                // validate teh sha
-                if (sha.length!==64) return false;
-                
-                // find the genres array by sha
-                let found = vars.files.musicVideoObject.find(m=>m.sha256===sha);
-                if (!found) return false;
-                let genres = found.genres;
-                vars.UI.highlightGenres(genres);
-            } else {
-                fGC.className = 'hidden';
+            if (rightClick) {
+                UI.showFloatingGenresAtCursor(e,fGC);
+                return;
+            };
+
+            fGC.style.left = ''; // reset the left var if its set
+
+            // reposition the fGC
+            let fGHeight = fGC.offsetHeight;
+            let y = gOffsetY-(fGHeight/2)-window.scrollY;
+            fGC.style.top = `${y}px`;
+            // make sure its on screen
+            let offTheTopOfScreen = y<0;
+            let offTheBottomOfScreen = y+fGHeight>window.innerHeight;
+            vars.DEBUG && console.log(`OffTop ${offTheTopOfScreen.toString()}. OffBottom: ${offTheBottomOfScreen.toString()}`);
+
+            if (offTheTopOfScreen) {
+                fGC.style.top = '10px';
+            } else if (offTheBottomOfScreen) {
+                vars.DEBUG && console.log(`Moving fGC up`);
+                let newY = window.innerHeight-fGHeight-10;
+                fGC.style.top = `${newY}px`;
+            };
+
+            // highlight the genres assoc with this video
+            let sha = div.parentElement.dataset.sha;
+            // validate teh sha
+            if (sha.length!==64) return false;
+            
+            // find the genres array by sha
+            let found = vars.files.musicVideoObject.find(m=>m.sha256===sha);
+            if (!found) return false;
+            let genres = found.genres;
+            vars.UI.highlightGenres(genres);
+        },
+        showFloatingGenresAtCursor: (e,fGC)=> {
+            vars.App.showingSelectByGenre = true;
+            // first, unhighlight all genres
+            vars.UI.unhighlightAllGenres();
+
+            // now highlight the selected genres
+            // start highlighting for this music video
+            let genres = vars.App.selectedGenres;
+            let gID = vars.UI.getElementByID;
+            genres.forEach((g)=> {
+                gID(`genre_${g}`).className = 'genre highlight';
+            });
+
+            // set the x and y based on where the pointer is
+            let x = e.clientX;
+            let y = e.clientY;
+            fGC.style.left=`${x}px`;
+            fGC.style.top=`${y}px`;
+
+            // make sure it isnt off the screen (to the right)
+            // NOTE: offsets are calculated, so we have to set the xy (above) then check if its off the screen)
+            if (fGC.offsetLeft + fGC.offsetWidth > window.innerWidth) {
+                x = window.innerWidth - fGC.offsetWidth - 30;
+                fGC.style.left=`${x}px`;
+            };
+
+            // make sure it isnt off the top/bottom of the screen
+            if (y<0) {
+                fGC.style.top="10px";
+            } else if (y+fGC.offsetHeight>window.innerHeight) {
+                y = window.innerHeight - fGC.offsetHeight;
+                fGC.style.top=`${y}px`;
             };
         },
 
@@ -1416,7 +1593,7 @@ var vars = {
 
                 // update the currently over sha and hide the floating genres container
                 UI.currentlyOver = div.dataset.sha;
-                UI.showFloatingGenresContainer(null,null,false);
+                UI.showFloatingGenresContainer(null,null,false,false);
             } else {
                 // we are hiding the genre button, make sure the floating genres container is NOT visible
                 div.lastChild.className = 'genreButton hidden';
@@ -1425,6 +1602,17 @@ var vars = {
 
         showTable: (show=true)=> {
             vars.UI.getElementByID('table').className = show ? '' : 'hidden';
+        },
+
+        showWarningPopUp: (show=true,msg)=> {
+            if (!msg && show) return 'When showing the popup, you must pass in a message';
+
+            let UI = vars.UI;
+            let className = show ? '' : 'hidden'
+            let wPU = UI.getWarningPopUp();
+            wPU.className = className;
+            show && (wPU.innerHTML = msg + '<p class="closeWarning">[Close warning window by clicking on it]</p>');
+            show && UI.updateWarningPopUpPosition();
         },
 
         showYTDownloader: (show=true)=> {
@@ -1518,6 +1706,14 @@ var vars = {
             };
 
             vars.UI.getElementByID('comingUpList').innerHTML = html;
+        },
+
+        updateWarningPopUpPosition: ()=> {
+            let wPU = vars.UI.getWarningPopUp();
+            if (wPU.className==='hidden') return;
+
+            wPU.style.left = `${(window.innerWidth - wPU.offsetWidth)/2}px`;
+            wPU.style.top = `${(window.innerHeight - wPU.offsetHeight)/2}px`;
         },
 
         unhighlightAllGenres: ()=> {

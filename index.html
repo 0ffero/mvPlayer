@@ -50,9 +50,9 @@
                 <div class="button remove-selected" onclick="vars.UI.showDeletePopUp()">REMOVE SELECTED<br/><span class="remove-selected-icons">🗋🡆🗑</span></div>
             </div>
         </div>
-        <div id="viewBy" onClick="vars.UI.switchView(event,this);">Current View: List</div>
+        <div id="viewBy" onclick="vars.UI.switchView(event,this);">Current View: List</div>
         <div id="container">
-            <div id="list"></div>
+            <div id="list">Loading... Please Wait</div>
             <div id="table" class="hidden">
                 <div class="column">A</div>
                 <div class="column">B</div>
@@ -121,5 +121,10 @@
         <div id="floatingGenresContainer" class="hidden">
             <div id="floatingGenres"></div>
         </div>
+
+        <div id="warningPopUp" class="hidden" onpointerup="vars.UI.showWarningPopUp(false)">Warning information will be in here</div>
+
+        <div id="currentlyPlayingPopUp" class="hidden">Currently Playing will be in here</div>
+
     </body>
 </html>
