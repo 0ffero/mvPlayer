@@ -14,6 +14,15 @@ var vars = {
                 IMPORTANT:
                     Music videos should be in mp4 or webm format
 
+
+                YT-DLP - YouTube Downloader Pro (python install/exe)
+                    https://github.com/yt-dlp/yt-dlp
+                
+                
+                montage.exe (part of ImageMagick - https://imagemagick.org/script/montage.php )
+                    Required after yt-dlp downloads the video. This creates 4 images to be associated with music video
+                    Place the exe into assets/bin folder
+
                 
                 STILL TO DO:
                     🞂 Music videos with a single quote arent unhighlighting (only when clicking on the list item itself - the check box is fine)
