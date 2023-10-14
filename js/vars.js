@@ -21,7 +21,7 @@ var vars = {
                 
                 montage.exe (part of ImageMagick - https://imagemagick.org/script/montage.php )
                     Required after yt-dlp downloads the video. This creates 4 images to be associated with music video
-                    Place the exe into assets/bin folder
+                    Place the exe into /bin folder
 
                 
                 STILL TO DO:
