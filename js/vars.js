@@ -616,6 +616,14 @@ var vars = {
             return options.options;
         },
 
+        removeSongFromNextList: (mvName)=> {
+            let selected = vars.App.selectedMusicVideos;
+            let i = selected.findIndex(m=>m===mvName);
+            if (i<0) return false;
+
+            
+        },
+
         searchForLyrics: ()=> {
             let options = vars.App.video.currentMusicVideoOptions;
             if (!options) return;
@@ -1710,7 +1718,8 @@ var vars = {
                     let className = i ? ' next' : ' now';
                     !i && (html+=nowHeader);
                     i===1 && (html+=nextHeader);
-                    html += `<div class="coming-up${className}">${mvName}</div>`;
+                    let del = i ? '<span style="color: red; cursor: pointer">🞮</span> ' : '';
+                    html += `<div class="coming-up${className}">${del}${mvName}</div>`;
                 };
             };
 

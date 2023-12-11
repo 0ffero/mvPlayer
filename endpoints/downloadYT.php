@@ -37,9 +37,21 @@ if (is_file($logFile)) {
     **********************
 */
 $url = 'https://www.youtube.com/watch?v=' . $id;
-chdir("D:/__NOTFILMS/__Music Videos");
-$exeOutput = shell_exec("yt-dlp -f mp4 $url");
-
+chdir("../assets/musicVideos");
+/* 
+   *************************************
+   *         !!! IMPORTANT !!!         *
+   *                                   *
+   * Change This To Wherever YT-DLP is *
+   *************************************
+*/
+$dlp = "C:/Users/GATEWAY/AppData/Local/Programs/Python/Python312/Scripts/yt-dlp.exe";
+if (!is_file($dlp)) {
+    $op = ['ERROR'=>'Unable to find yt-dlp executable. Edit it in downloadYT.php'];
+    echo json_encode($op);
+    exit;
+}
+$exeOutput = shell_exec("$dlp -f mp4 $url");
 $exeOPArray = explode("\r", $exeOutput);
 
 $lengthOfArray = count($exeOPArray);
@@ -53,9 +65,12 @@ $ytdlRequest = explode("\n",$exeOPArray[0]);
 
 
 /*
-    **************************
-    * rename the saved video *
-    **************************
+    ******************************
+    *   RENAME THE SAVED VIDEO   *
+    *                            *
+    * This removes all the extra *
+    * info in the songs name     *
+    ******************************
 */
 $replace = [" [$id]"," (Official HD Video)"," (Official Music Video)"," [Official Music Video]"," (Official 4K Video)"," (Official Audio)"," (Official Video)"," (Official Lyric Video)"," MUSIC VIDEO", " (HD REMASTER)"," [4K]","()","[]"];
 // FIND THE NAME OF THE SAVED FILE
