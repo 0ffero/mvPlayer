@@ -618,10 +618,16 @@ var vars = {
 
         removeSongFromNextList: (mvName)=> {
             let selected = vars.App.selectedMusicVideos;
-            let i = selected.findIndex(m=>m===mvName);
+            let i = selected.findIndex(m=>m[0]===mvName);
             if (i<0) return false;
 
-            
+            selected.splice(i,1);
+            // grab the currently playing and put it back into the array
+            let sha = vars.App.video.currentMusicVideoOptions.sha256;
+            let currentlyPlaying = vars.files.getMVNameAndExtension(sha);
+            selected.splice(0,0,[currentlyPlaying.mvName,currentlyPlaying.mvExt]);
+            vars.UI.updateTheComingUpList();
+            selected.shift();
         },
 
         searchForLyrics: ()=> {
@@ -1718,7 +1724,8 @@ var vars = {
                     let className = i ? ' next' : ' now';
                     !i && (html+=nowHeader);
                     i===1 && (html+=nextHeader);
-                    let del = i ? '<span style="color: red; cursor: pointer">🞮</span> ' : '';
+                    let mvSafe = mvName.replaceAll("'", "\\'");
+                    let del = i ? `<span style="color: red; cursor: pointer" onclick="vars.App.removeSongFromNextList('${mvSafe}')">🞮</span> ` : '';
                     html += `<div class="coming-up${className}">${del}${mvName}</div>`;
                 };
             };

@@ -72,7 +72,7 @@ $ytdlRequest = explode("\n",$exeOPArray[0]);
     * info in the songs name     *
     ******************************
 */
-$replace = [" [$id]"," (Official HD Video)"," (Official Music Video)"," [Official Music Video]"," (Official 4K Video)"," (Official Audio)"," (Official Video)"," (Official Lyric Video)"," MUSIC VIDEO", " (HD REMASTER)"," [4K]","()","[]"];
+$replace = [" [$id]"," (Official HD Video)"," (Official Music Video)"," [Official Music Video]"," (Official 4K Video)"," (Official Audio)"," (Official Video)"," (OFFICIAL VIDEO)"," (Official Lyric Video)"," (Official Lyrics Video)"," MUSIC VIDEO", " (HD REMASTER)"," [4K]","()","[]"];
 // FIND THE NAME OF THE SAVED FILE
 $lookingFor = '[download] Destination: ';
 $savedAs = '';
