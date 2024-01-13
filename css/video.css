@@ -15,9 +15,36 @@
     z-index: -10;
 }
 
+#videoDivContainer_fullScreen {
+    align-items: center;
+    background-color: black;
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    left: 0px;
+    position: fixed;
+    top: 0px;
+    visibility: hidden;
+    width: 100vw;
+    z-index: 20;
+}
+
 #video {
     border: 2px solid #ff9100;
     padding: 5px 5px;
+}
+
+.video_fullScreen {
+    align-items: center;
+    background: black;
+    border: none !important;
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    left: 0px;
+    position: fixed;
+    top: 0px;
+    width: 100vw;
 }
 
 #vAndLContainer {
@@ -136,5 +163,35 @@
     text-align: center;
     top: 95%;
     width: 90%;
-    z-index: 2147483647;
+    z-index: 100;
+}
+
+
+#lyricsScroller {
+    transition: 500ms;
+
+    background-color: rgba(255,255,255,0.05);
+    display: flex;
+    font-size: 18px;
+    height: 100vh;
+    padding: 12px;
+    position: fixed;
+    right: 0px;
+    top: 0px;
+    z-index: 90;
+}
+
+#lyricsScrollerShowButton {
+    border-radius: 5px;
+    border: 1px solid #ff9100;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 5px 10px;
+    position: fixed;
+    right: 10px;
+    text-align: center;
+    top: 10px;
+    width: 100px;
+    z-index: 95;
 }

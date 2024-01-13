@@ -31,17 +31,34 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: 1.15,
+    version: 1.17,
 
     init: ()=> {
         vars.localStorage.init();
 
+        
         let fV = vars.files;
         fV.getFiles('getFiles.php',fV.dealWithResponseFromGetFiles);
         fV.getAllLyrics();
-
+        
         let gID = vars.UI.getElementByID;
         gID('version').innerHTML = `v${vars.version}`;
+        
+        let video = gID('video');
+        video.addEventListener('click', vars.App.video.pauseSwitch);
+        video.addEventListener('dblclick', vars.App.fullScreenVideo);
+
+        let sSLB = gID('lyricsScrollerShowButton');
+        let lS = gID('lyricsScroller');
+        sSLB.onclick = ()=> {
+            lS.show();
+        };
+        sSLB.onmouseenter = ()=> {
+            sSLB.style.opacity=1;
+        };
+        sSLB.onmouseleave = ()=> {
+            sSLB.style.opacity=0.33;
+        };
         
         // set up the floating genres container
         vars.UI.initFloatingGenres();
@@ -500,6 +517,29 @@ var vars = {
             return vars.App.lyricsArray.find(m=>m.sha===sha) || null;
         },
 
+        fullScreenVideo: ()=> {
+            let aV = vars.App.video;
+            let currentlyFullScreen = aV.fullScreen;
+            
+            let gID = vars.UI.getElementByID;
+            let video = gID('video');
+            
+            if (currentlyFullScreen) {
+                video.classList = '';
+                aV.fullScreen = false;
+                return;
+            };
+
+            video.classList = 'video_fullScreen';
+            aV.fullScreen = true;
+
+            // check for lyrics
+            let lS = gID('lyricsScroller');
+            if (lS.innerHTML==='') return;
+
+            lS.style.visibility = 'visible';
+        },
+
         generateDeselectByGenre: (genre)=> {
             if (!genre) return "No genre passed!";
 
@@ -619,14 +659,21 @@ var vars = {
         removeSongFromNextList: (mvName)=> {
             let selected = vars.App.selectedMusicVideos;
             let i = selected.findIndex(m=>m[0]===mvName);
-            if (i<0) return false;
+            if (i<0) {
+                console.error(`Unable to find ${mvName} in selected music video array.\nReturning false.`);
+                debugger;
+                return false;
+            };
 
+            // remove the requested song
             selected.splice(i,1);
             // grab the currently playing and put it back into the array
             let sha = vars.App.video.currentMusicVideoOptions.sha256;
             let currentlyPlaying = vars.files.getMVNameAndExtension(sha);
             selected.splice(0,0,[currentlyPlaying.mvName,currentlyPlaying.mvExt]);
+            // Update the UI
             vars.UI.updateTheComingUpList();
+            // Remove currently playing again :)
             selected.shift();
         },
 
@@ -759,6 +806,7 @@ var vars = {
             interval: null,
             loading: false,
             playlist: null,
+            fullScreen: false,
 
             init: ()=> {
                 var v = vars.UI.getElementByID('video');
@@ -936,6 +984,7 @@ var vars = {
 
             playNext: ()=> {
                 let aV = vars.App;
+                let gID = vars.UI.getElementByID;
                 
                 // draw the upcoming list
                 aV.updateTheComingUpList();
@@ -954,12 +1003,23 @@ var vars = {
                 // get the options for this file
                 aV.video.currentMusicVideoOptions = aV.getOptionsForMusicVideo(mvFile);
                 aV.video.currentMusicVideoOptions.title = nextMusicVideoTitle;
+
                 // grab the lyrics (if any)
                 let sha = aV.video.currentMusicVideoOptions.sha256;
                 let lO = aV.findLyricsBySha(sha);
-                vars.UI.getElementByID('lyrics').value = lO ? lO.lyrics : '';
+                gID('lyrics').value = lO ? lO.lyrics : '';
+                
+                let lS = gID('lyricsScroller');
+                lS.innerHTML = lO ? `<pre>${lO.lyrics}</pre>` : '';
+                if (lO) {
+                    lS.style.right = `${0-lS.offsetWidth}px`;
+                };
 
-                // un-select this music video
+                let sB = gID('lyricsScrollerShowButton');
+                sB.style.visibility = lO ? 'visible' : 'hidden';
+                
+
+                // unselect this music video
                 vars.input.clickOnWhich('list',sha);
 
                 // load and play the video
@@ -967,6 +1027,11 @@ var vars = {
                 let v = vars.UI.getElementByID('video');
                 let folder = './assets/musicVideos';
                 v.src=`${folder}/${mvFile}`;
+            },
+
+            pauseSwitch: ()=> {
+                let v = vars.UI.getElementByID('video');
+                v.paused ? v.play() : v.pause();
             },
 
             scrollLyricsInit: ()=> {
@@ -1166,6 +1231,12 @@ var vars = {
             vars.App.options.ignore.forEach((mv)=> {
                 vars.files.removeMusicVideoFromList(mv);
             });
+
+            let gID = vars.UI.getElementByID;
+            let lS = gID('lyricsScroller');
+            lS.show = ()=> {
+                lS.style.right =  lS.style.right === "0px" ? `-${lS.offsetWidth}px` : "0px";
+            };
             
             vars.App.updateTableColumns(true);
 
