@@ -31,7 +31,9 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: 1.17,
+    version: `1.17.4`,
+
+    videoFolder: './assets/musicVideos',
 
     init: ()=> {
         vars.localStorage.init();
@@ -48,17 +50,7 @@ var vars = {
         video.addEventListener('click', vars.App.video.pauseSwitch);
         video.addEventListener('dblclick', vars.App.fullScreenVideo);
 
-        let sSLB = gID('lyricsScrollerShowButton');
-        let lS = gID('lyricsScroller');
-        sSLB.onclick = ()=> {
-            lS.show();
-        };
-        sSLB.onmouseenter = ()=> {
-            sSLB.style.opacity=1;
-        };
-        sSLB.onmouseleave = ()=> {
-            sSLB.style.opacity=0.33;
-        };
+        vars.App.initScrollingLyricsDivAndButton();
         
         // set up the floating genres container
         vars.UI.initFloatingGenres();
@@ -444,6 +436,22 @@ var vars = {
             vars.init();
         },
 
+        initScrollingLyricsDivAndButton() {
+            let gID = vars.UI.getElementByID;
+
+            let sSLB = gID('lyricsScrollerShowButton');
+            let lS = gID('lyricsScroller');
+            sSLB.onclick = ()=> {
+                lS.show();
+            };
+            sSLB.onmouseenter = ()=> {
+                sSLB.style.opacity=1;
+            };
+            sSLB.onmouseleave = ()=> {
+                sSLB.style.opacity=0.33;
+            };
+        },
+
         addMusicVideosToIgnoreList: ()=> {
             let aV = vars.App;
             let options = aV.options;
@@ -527,6 +535,7 @@ var vars = {
             if (currentlyFullScreen) {
                 video.classList = '';
                 aV.fullScreen = false;
+                aV.hideLyricsScrollerAndButton(true);
                 return;
             };
 
@@ -534,10 +543,10 @@ var vars = {
             aV.fullScreen = true;
 
             // check for lyrics
-            let lS = gID('lyricsScroller');
-            if (lS.innerHTML==='') return;
+            let lyrics = aV.currentMusicVideoOptions.lyrics;
+            let show = lyrics ? true : false;
+            aV.hideLyricsScrollerAndButton(!show);
 
-            lS.style.visibility = 'visible';
         },
 
         generateDeselectByGenre: (genre)=> {
@@ -936,6 +945,13 @@ var vars = {
                 vars.files.getYT(url);
             },
 
+            hideLyricsScrollerAndButton: (hide=true)=> {
+                let gID = vars.UI.getElementByID;
+                let visible = hide ? 'hidden' : 'visible';
+                gID('lyricsScrollerShowButton').style.visibility=visible;
+                gID('lyricsScroller').style.visibility=visible;
+            },
+
             introEndSet: ()=> {
                 let which = 'introEnd';
                 let vV = vars.App.video;
@@ -1007,17 +1023,17 @@ var vars = {
                 // grab the lyrics (if any)
                 let sha = aV.video.currentMusicVideoOptions.sha256;
                 let lO = aV.findLyricsBySha(sha);
+                aV.video.currentMusicVideoOptions.lyrics = lO ? lO.lyrics : '';
+                // update the 2 lyrics containers (adds lyrics or empties if there are none)
                 gID('lyrics').value = lO ? lO.lyrics : '';
-                
                 let lS = gID('lyricsScroller');
                 lS.innerHTML = lO ? `<pre>${lO.lyrics}</pre>` : '';
                 if (lO) {
                     lS.style.right = `${0-lS.offsetWidth}px`;
                 };
-
-                let sB = gID('lyricsScrollerShowButton');
-                sB.style.visibility = lO ? 'visible' : 'hidden';
-                
+                // if lO and fullScreen, show the button else hide it
+                let show = lO && aV.video.fullScreen ? true : false;
+                aV.video.hideLyricsScrollerAndButton(!show);
 
                 // unselect this music video
                 vars.input.clickOnWhich('list',sha);
@@ -1025,7 +1041,7 @@ var vars = {
                 // load and play the video
                 aV.video.loading = true;
                 let v = vars.UI.getElementByID('video');
-                let folder = './assets/musicVideos';
+                let folder = vars.videoFolder;
                 v.src=`${folder}/${mvFile}`;
             },
 

@@ -173,25 +173,30 @@
     background-color: rgba(255,255,255,0.05);
     display: flex;
     font-size: 18px;
-    height: 100vh;
+    height: 90vh;
     padding: 12px;
     position: fixed;
     right: 0px;
     top: 0px;
+    visibility: hidden;
     z-index: 90;
 }
 
 #lyricsScrollerShowButton {
+    transition: 333ms;
+
     border-radius: 5px;
     border: 1px solid #ff9100;
     color: white;
     cursor: pointer;
     font-weight: bold;
+    opacity: 0.33;
     padding: 5px 10px;
     position: fixed;
     right: 10px;
     text-align: center;
     top: 10px;
+    visibility: hidden;
     width: 100px;
     z-index: 95;
 }
