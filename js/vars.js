@@ -31,7 +31,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `1.17.4`,
+    version: `1.18`,
 
     videoFolder: './assets/musicVideos',
 
@@ -762,15 +762,22 @@ var vars = {
 
         update: ()=> {
             // CHECK IF VIDEO IS PLAYING
-            let video = vars.UI.getElementByID('video');
-            if (!video.paused) {
-                if (vars.App.video.currentMusicVideoOptions.outroStart) {
-                    (video.currentTime>vars.App.video.currentMusicVideoOptions.outroStart) && vars.App.video.playNext();
+            let UI = vars.UI;
+            let video = UI.getElementByID('video');
+
+            let videoPlaying = !video.paused;
+            if (videoPlaying) { // video is currently playing
+                let vAV = vars.App.video;
+                if (vAV.currentMusicVideoOptions.outroStart) {
+                    if (video.currentTime>vAV.currentMusicVideoOptions.outroStart) {
+                        vAV.playNext();
+                        return;
+                    };
                 };
 
                 // update the scroll position of the lyrics if necessary
-                if (vars.UI.scrollLyrics && vars.UI.scrollTotalDistance) {
-                    vars.UI.scrollLyricsTextArea();
+                if (UI.scrollLyrics && UI.scrollTotalDistance) {
+                    UI.scrollLyricsTextArea();
                 };
             };
             // END
@@ -1009,6 +1016,7 @@ var vars = {
                 let nextMusicVideo = aV.getNextVideo();
                 if (!checkType(nextMusicVideo,'array') || nextMusicVideo.length!==2) {
                     aV.video.show(false);
+                    aV.video.hideLyricsScrollerAndButton(true);
                     console.log(`No videos left in selected...\nExiting.`);
                     return;
                 };
@@ -1073,6 +1081,24 @@ var vars = {
                 aVV.currentMusicVideoOptions.videoLength = videoLength;
 
                 UI.scrollTotalDistance = scrollHeight-divHeight;
+
+                // set the new scrollers vars
+                let lS = UI.getElementByID('lyricsScroller');
+                
+                let paddingY = lS.dataset.paddingy*1;
+                let startHeight = lS.dataset.initialdivheight*1;
+                let windowHeight = window.innerHeight;
+                lS.dataset.windowheight = windowHeight;
+                
+                let startY = windowHeight-paddingY-startHeight;
+                lS.dataset.starty = startY;
+                divHeight = lS.offsetHeight;
+                lS.dataset.divfullheight=divHeight;
+
+                // resize the scroller div
+                lS.style.top=`${startY}px`;
+                lS.style.height=`${startHeight}px`;
+
             },
 
             show: (show=true)=> {
@@ -1252,6 +1278,24 @@ var vars = {
             let lS = gID('lyricsScroller');
             lS.show = ()=> {
                 lS.style.right =  lS.style.right === "0px" ? `-${lS.offsetWidth}px` : "0px";
+            };
+
+            lS.getYOffsetAndUpdate = (delta)=> {
+                if (!delta) return;
+
+                let paddingY = lS.dataset.paddingy*1; // unused at this point, just left here for reference
+                let startY = lS.dataset.starty*1;
+                let iDV = lS.dataset.initialdivheight*1;
+                let divFullHeight = lS.dataset.divfullheight*1;
+
+                let offsetY = startY - delta * (startY + divFullHeight - iDV);
+                
+                // now figure out the height of the div
+                let height = startY-offsetY;
+                //if (height>=divFullHeight) return;
+                
+                lS.style.top=`${offsetY}px`;
+                lS.style.height=`${height}px`;
             };
             
             vars.App.updateTableColumns(true);
@@ -1532,6 +1576,7 @@ var vars = {
         scrollLyricsTextArea: ()=> {
             if (!vars.UI.scrollLyrics) return;
 
+            let UI = vars.UI;
             let videoDiv = vars.App.video.getVideoDiv();
             let cT = videoDiv.currentTime;
             let tT = videoDiv.duration;
@@ -1539,7 +1584,10 @@ var vars = {
             let offsetMult = cT/tT;
 
             let textAreaScrollY = offsetMult * vars.UI.scrollTotalDistance;
-            vars.UI.getElementByID('lyrics').scroll(0,textAreaScrollY);
+            UI.getElementByID('lyrics').scroll(0,textAreaScrollY);
+
+            UI.getElementByID('lyricsScroller').getYOffsetAndUpdate(offsetMult);
+
         },
 
         setTableColumns: ()=> {
