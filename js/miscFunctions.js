@@ -3,6 +3,10 @@ String.prototype.capitalise = function() {
     return this.charAt(0).toUpperCase() + this.slice(1);
 };
 
+function clamp(int,min,max) {
+    return int<min ? min : int>max ? max : int;
+}
+
 function arraySortByKey(array, key) {
     if (!Array.isArray(array)) return false;
     return array.sort(function(a, b) {

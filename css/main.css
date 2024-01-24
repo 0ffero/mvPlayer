@@ -179,3 +179,7 @@ a:hover { color: deepskyblue; }
 }
 
 /* END OF PAGE STUFF */
+
+.clickable {
+    cursor: pointer;
+}

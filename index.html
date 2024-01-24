@@ -10,21 +10,24 @@
         
         <link rel="stylesheet" href="css/list.css">
         <link rel="stylesheet" href="css/mainPageButtons.css">
+        <link rel="stylesheet" href="css/musicContainer.css">
         <link rel="stylesheet" href="css/popup.css">
         <link rel="stylesheet" href="css/table.css">
         <link rel="stylesheet" href="css/video.css">
         <link rel="stylesheet" href="css/yt-dl.css">
+        
 
         <script src="assets/font/d40a0f0b1f.js"></script>
 
         <script src="js/miscFunctions.js"></script>
 
         <script src="js/vars.js"></script>
+        <script src="js/classes/AudioPlayer.js"></script>
 
         <script defer src="js/init.js"></script>
     </head>
     <body>
-        <div id="header"><h1><i class="fa-solid fa-music"></i><i class="fa-solid fa-video"><i class="fa-solid fa-play"></i></i><br/>Music Video Player</h1><br/><div id="version"></div></div>
+        <div id="header"><h1><i class="fa-solid fa-music clickable" onclick="vars.UI.musicListClass.musicContainer.show(true)"></i><i class="fa-solid fa-video"><i class="fa-solid fa-play"></i></i><br/>Music Video Player</h1><br/><div id="version"></div></div>
         <div id="buttons">
             <div id="selectButtons">
                 <div class="button" onclick="vars.UI.checkAll()">SELECT ALL <i class="fa-solid fa-plus"></i></i></div>
@@ -130,6 +133,24 @@
         <div id="warningPopUp" class="hidden" onpointerup="vars.UI.showWarningPopUp(false)">Warning information will be in here</div>
 
         <div id="currentlyPlayingPopUp" class="hidden">Currently Playing will be in here</div>
+
+
+        <!--
+            This is the new music system (ie music mp3/flac etc)
+        -->
+        <div id="musicContainer" class="hidden">
+            <div class="mC_Spacer" onclick="vars.UI.musicListClass.musicContainer.show(false)">&nbsp;</div>
+            <div id="mC_Background">
+                <div id="mC_FolderList"></div>
+                <div id="mC_SelectedTracks">
+                    <div id="audioContainer"><div id="audioPrevious" class="clickable"><i class="fa-solid fa-backward"></i></div><div id="audioNext" class="clickable"><i class="fa-solid fa-forward"></i></div><audio id="audioPlayer" controls></audio></div>
+                    <div id="playlistHeader">
+                        <div id="sTHeader">Play List</div><div id="clearPlaylist"><div id="autoplay"><i class="fa-solid fa-car"></i><i class="fa-solid fa-play"></div></i><i class="fa-solid fa-shuffle" onclick="vars.UI.musicListClass.shufflePlaylist()"></i><i class="fa-solid fa-trash" onclick="vars.UI.musicListClass.emptyPlaylist()"></i></div>
+                    </div>
+                    <div id="sTList"></div>
+                </div>
+            </div>
+        </div>
 
     </body>
 </html>

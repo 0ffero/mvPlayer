@@ -10,6 +10,11 @@ var vars = {
                     mklink /J musicvideos drive:folder-with-music-videos
                 LINUX:
                     Dont really know tbh. Im sure youll figure it out :)
+                    NOT RECOMMENDED -   Currently the new music player assumes windows dir structure
+                                        This is a problem because we dont have a script that determines
+                                        if the server is linux or not. So, the php lister for music will
+                                        work on linux or windows, however the js that deals with the
+                                        response wont know if it should be looking for / or \
 
                 IMPORTANT:
                     Music videos should be in mp4 or webm format
@@ -31,9 +36,11 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `1.18`,
+    version: `1.99.12`,
 
     videoFolder: './assets/musicVideos',
+
+    musicHTML: '',
 
     init: ()=> {
         vars.localStorage.init();
@@ -42,6 +49,7 @@ var vars = {
         let fV = vars.files;
         fV.getFiles('getFiles.php',fV.dealWithResponseFromGetFiles);
         fV.getAllLyrics();
+        fV.getMusic();
         
         let gID = vars.UI.getElementByID;
         gID('version').innerHTML = `v${vars.version}`;
@@ -63,8 +71,68 @@ var vars = {
         musicVideoArray: [],
         overwriteLyrics: false,
 
+        dealWithGetAllMusic: (rs)=> {
+            let mL = JSON.parse(rs);
+            if (mL['ERROR']) {
+                if (mL['ERROR']==='No Music') {
+                    console.warn(`Music folder wasnt found.\nThis is just a warning.\nIf theres a real error it will force a pop up`);
+                    return;
+                }
+                vars.UI.showWarningPopUp(true, mL['ERROR']);
+                return;
+            };
+            
+            // everything looks good... at least 1 files was found
+            let results = mL['music'];
+            let dirTree = [];
+            vars.DEBUG && console.groupCollapsed(`%cDealing with the MUSIC response`,'color: #00A3D9');
+            results.forEach((t)=> {
+                vars.DEBUG && console.log(t);
+                if (!t.length) return;
+
+                if (checkType(t, 'array')) {
+                    t.forEach((f)=> {
+                        f = f.split('\\');
+                        // get the song name and folder
+                        let songName = f.pop();
+                        let folder = f.join('\\');
+                        let index = dirTree.findIndex(d=>d.folder===folder);
+                        if (index===-1) {
+                            dirTree.push({ folder: folder, tracks: []});
+                            index = dirTree.length-1;
+                        };
+                        
+                        // push the track
+                        dirTree[index].tracks.push(songName);
+                    });
+                } else if (checkType(t,'string')) {
+                    t = t.split('\\');
+                    // get the song name and folder
+                    let songName = t.pop();
+                    let folder = t.join('\\');
+                    let index = dirTree.findIndex(d=>d.folder===folder);
+                    if (index===-1) {
+                        dirTree.push({ folder: folder, tracks: []});
+                        index = dirTree.length-1;
+                    };
+                    
+                    // push the track
+                    dirTree[index].tracks.push(songName);
+                };
+            });
+            vars.DEBUG && console.groupEnd();
+
+            vars.App.musicList = dirTree;
+
+            vars.UI.buildMusicList();
+        },
+
         dealWithResponseFromGetAllLyrics: (rs)=> {
             vars.App.lyricsArray = JSON.parse(rs);
+
+            // make sure the lyrics were sent back properly
+            let l = vars.App.lyricsArray.filter(l=>l.lyrics);
+            if (!l.length) { vars.UI.showWarningPopUp(true, `No lyrics found. Make sure WAMP is running on the gateway`) };
         },
         dealWithResponseFromGetFiles: (rs)=> {
             let aV = vars.App;
@@ -228,6 +296,15 @@ var vars = {
             xmlHttp.send(post);
         },
 
+        getMusic: ()=> {
+            let fV = vars.files;
+
+            let url = 'getAllMusic.php';
+            let callback = fV.dealWithGetAllMusic;
+
+            fV.getFiles(url,callback);
+        },
+
         getMVNameAndExtension: (sha)=> {
             if (!sha || sha.length!==64) return false;
 
@@ -357,14 +434,27 @@ var vars = {
                     stars: []
                 });
             };
-
             let options = vars.App.options = JSON.parse(lS[appID]);
+
+            // set up the recent var
+            if (!lS[`${appID}_recent`] || reset) { lS[`${appID}_recent`] = 'video'; };
+            vars.App.recent = lS[`${appID}_recent`];
+
+            // set up the autoplay var for music player
+            if (!lS[`${appID}_autoplay`] || reset) { lS[`${appID}_autoplay`] = 'true'; };
+            vars.App.autoplayAudioTracks = lS[`${appID}_autoplay`] == 'true' ? true : false;
 
             // check for the new offsets array ADDED D20230616T1941
             if (!options['offsets']) {
                 options.offsets = [];
                 lS[appID] = JSON.stringify(options);
             };
+        },
+        saveAutoplay: ()=> {
+            let lV = vars.localStorage;
+            let appID = lV.appID();
+            let lS = window.localStorage;
+            lS[`${appID}_autoplay`] = vars.App.autoplayAudioTracks;
         },
         saveMVImageOffset: (sha,offset)=> {
             if (!sha || !checkType(offset,'string')) return false;
@@ -392,6 +482,11 @@ var vars = {
             lS[lV.appID()] = json;
 
             console.log(`%c** Options saved **`,'color: #30ff30; font-weight: bold;');
+        },
+        saveDefaultView: ()=> {
+            let lV = vars.localStorage;
+            let lS = window.localStorage;
+            lS[`${lV.appID()}_recent`] = vars.App.recent;
         }
     },
 
@@ -420,6 +515,8 @@ var vars = {
         },
         linkArray: [],
         lyricsArray: [],
+        musicList: [],
+        musicPlayList: [],
         selectedMusicVideos: [],
         selectedGenres: [],
         showingSelectByGenre: false,
@@ -436,7 +533,7 @@ var vars = {
             vars.init();
         },
 
-        initScrollingLyricsDivAndButton() {
+        initScrollingLyricsDivAndButton: ()=> {
             let gID = vars.UI.getElementByID;
 
             let sSLB = gID('lyricsScrollerShowButton');
@@ -477,7 +574,7 @@ var vars = {
             vars.UI.showDeletePopUp(false);
         },
 
-        addRemoveMV(mv,ext) {
+        addRemoveMV: (mv,ext)=> {
             let aV = vars.App;
 
             // does the video already exist in the selectedMusicVideos array?
@@ -1153,6 +1250,11 @@ var vars = {
             vars.input.clickOnWhich(which,sha);
         },
 
+        clickOnTrack: (trackName)=> {
+            // add or remove track from play list
+            debugger;
+        },
+
         clickOnWhich: (which,sha)=> {
             if (!sha || sha.length!==64) return false; // sha is invalid: exit.
             /*
@@ -1263,6 +1365,7 @@ var vars = {
         intervals: {
             floatingPlayButton: null,
         },
+        musicListClass: null,
         scrollLyrics: false,
         scrollTotalDistance: 0,
         viewNames: ['List', 'Table', 'Images (small)', 'Images (large)'],
@@ -1400,6 +1503,10 @@ var vars = {
             UI.buildTable();
             let mVI = UI.getElementByID('musicVideoImages');
             mVI.children && mVI.children.length ? UI.reorderImagesView() : UI.buildImagesView();
+        },
+
+        buildMusicList: ()=> {
+            vars.UI.musicListClass = new AudioPlayer();
         },
 
         buildTable: ()=> {
@@ -1644,6 +1751,17 @@ var vars = {
                 cPPU.className = 'hidden';
                 delete(cPPU.timeout);
             },3000);
+        },
+
+        showFolderContents: (div,folderName)=> {
+            let trackContainer = div.parentElement.parentElement.lastChild;
+            let c = trackContainer.className;
+            if (c.includes('hidden')) {
+                trackContainer.className = c.replace('hidden','');
+                trackContainer.className = trackContainer.className.trim();
+            } else {
+                trackContainer.className += ' hidden';
+            };
         },
 
         showFloatingButtons: (show=true)=> {

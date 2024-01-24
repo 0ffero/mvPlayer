@@ -1,0 +1,184 @@
+#musicContainer {
+    display: flex;
+    height: 100vh;
+    left: 0;
+    position: fixed;
+    top: 0;
+    width: 100vw;
+    flex-direction: column;
+    align-items: center;
+}
+
+#mC_Background {
+    background-color: #1a1a1a;
+}
+
+#mC_FolderList {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0 10px;
+    overflow-y: auto;
+    width: 100vw;
+}
+
+#mC_SelectedTracks {
+    transition: 500ms;
+    display: flex;
+    flex-direction: column;
+    height: -webkit-fill-available;
+    padding: 10px;
+    position: fixed;
+    right: 30px;
+    top: 130px;
+    width: 500px;
+}
+
+#mC_SelectedTracks:hover {
+    transition: 500ms;
+    background-color: #00000080;
+}
+
+.mC_Spacer {
+    padding-top: 100px;
+    width: 100vw;
+}
+
+#playlistHeader {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    margin-top: 15px;
+}
+
+#sTHeader {
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    width: 100%;
+}
+
+#clearPlaylist {
+    transition: 1s;
+
+    cursor: pointer;
+    display: flex;
+}
+
+.autoplayOn {
+    color: #46ff46;
+    display: flex;
+}
+.autoplayOff {
+    color: #e04a4a;
+    display: flex;
+}
+
+.fa-play {
+    left: -10px;
+    position: relative;
+}
+
+.fa-shuffle {
+    color: #33bdff;
+}
+
+.fa-shuffle:hover {
+    transition: 1s;
+
+    color: #bdeaff;
+}
+
+
+.fa-trash {
+    color: #ff8989;
+}
+
+.fa-trash:hover {
+    transition: 1s;
+    
+    color: red;
+}
+
+.addAlbum {
+    transition: 333ms;
+
+    cursor: pointer;
+}
+
+.addAlbum:hover {
+    transition: 333ms;
+
+    background-color: #33bdff;
+}
+
+
+.trackcontainer {
+    margin-left: 75px;
+}
+
+.folderNameHeader {
+    align-items: center;
+    display: flex;
+    background-color: #272935;
+    border: 2px solid #252633;
+    padding: 1px;
+    margin: 0 0 2px 0;
+}
+.folderName {
+    color: #aaf7ff;
+    cursor: pointer;
+    padding: 5px 30px;
+}
+
+.trackName {
+    color: #33bdff;
+    cursor: pointer;
+    padding-bottom: 10px;
+}
+
+#audioContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+#audioPlayer {
+    scale: 0.7;
+}
+
+#audioPrevious {
+    margin-right: 15px;
+}
+
+#audioPrevious, #audioNext {
+    transition: 500ms;
+    align-items: center;
+    background-color: white;
+    border-radius: 20px;
+    color: black;
+    display: flex;
+    font-weight: bold;
+    height: 38px;
+    width: 50px;
+}
+
+#audioPrevious:hover, #audioNext:hover {
+    transition: 333ms;
+
+    background-color: #33bdff;
+}
+
+.playlistTrack {
+    color: #888888;
+    cursor: pointer;
+}
+
+.playing {
+    color: #96d496;
+}
+
+.highlighted {
+    color: #ffffff;
+}
