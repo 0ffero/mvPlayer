@@ -36,7 +36,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `1.99.13`,
+    version: `1.99.14`,
 
     videoFolder: './assets/musicVideos',
 
@@ -1122,6 +1122,13 @@ var vars = {
                 let nextMusicVideoTitle = nextMusicVideo[0];
                 
                 if (aV.video.getVideoDiv().className.includes('fullScreen')) { // currently full screen, show the currently playing pop up
+                    // make sure the pop up isnt currently visible
+                    let cPPU = vars.UI.getElementByID('currentlyPlayingPopUp');
+                    if (cPPU.timeout) {
+                        clearTimeout(cPPU.timeout);
+                        delete(cPPU.timeout);
+                    };
+                    // show the pop up
                     vars.UI.showCurrentlyPlayingPopUp(true,nextMusicVideo[0]);
                 };
 
@@ -1253,11 +1260,6 @@ var vars = {
             */
 
             vars.input.clickOnWhich(which,sha);
-        },
-
-        clickOnTrack: (trackName)=> {
-            // add or remove track from play list
-            debugger;
         },
 
         clickOnWhich: (which,sha)=> {
@@ -1746,15 +1748,22 @@ var vars = {
             let div = vars.UI.getElementByID('nextMusicVideoImage');
             div.className = show ? '' : 'hidden';
         },
-        showCurrentlyPlayingPopUp: (show=true, msg)=> {
+        showCurrentlyPlayingPopUp: (show=true, msg='')=> {
             if (show && !msg) return 'If youre showing the popup, it must have a msg with it (with the songs name)';
 
             let cPPU = vars.UI.getElementByID('currentlyPlayingPopUp');
             cPPU.className = show ? 'currentlyPlayingShow' : 'currentlyPlayingHide';
+            if (!show) return;
+            
+            // we're showing the div
+            // set the msg
             cPPU.innerHTML = msg;
 
+            // hide it after 5 seconds
             cPPU.timeout = setTimeout(()=> {
-                cPPU.className = 'currentlyPlayingHide';
+                if (!cPPU.timeout) return;
+
+                cPPU.className !== 'currentlyPlayingHide' && (cPPU.className = 'currentlyPlayingHide');
                 delete(cPPU.timeout);
             },5000);
         },
