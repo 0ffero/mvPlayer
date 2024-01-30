@@ -36,7 +36,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `1.99.12`,
+    version: `1.99.13`,
 
     videoFolder: './assets/musicVideos',
 
@@ -1120,6 +1120,11 @@ var vars = {
 
                 // next track is valid
                 let nextMusicVideoTitle = nextMusicVideo[0];
+                
+                if (aV.video.getVideoDiv().className.includes('fullScreen')) { // currently full screen, show the currently playing pop up
+                    vars.UI.showCurrentlyPlayingPopUp(true,nextMusicVideo[0]);
+                };
+
                 let mvFile = nextMusicVideo.join('.');
                 // get the options for this file
                 aV.video.currentMusicVideoOptions = aV.getOptionsForMusicVideo(mvFile);
@@ -1745,12 +1750,13 @@ var vars = {
             if (show && !msg) return 'If youre showing the popup, it must have a msg with it (with the songs name)';
 
             let cPPU = vars.UI.getElementByID('currentlyPlayingPopUp');
-            cPPU.className = show ? '' : 'hidden';
+            cPPU.className = show ? 'currentlyPlayingShow' : 'currentlyPlayingHide';
+            cPPU.innerHTML = msg;
 
             cPPU.timeout = setTimeout(()=> {
-                cPPU.className = 'hidden';
+                cPPU.className = 'currentlyPlayingHide';
                 delete(cPPU.timeout);
-            },3000);
+            },5000);
         },
 
         showFolderContents: (div,folderName)=> {
