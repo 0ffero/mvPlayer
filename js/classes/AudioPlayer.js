@@ -92,6 +92,8 @@ class AudioPlayer {
         };
     }
 
+    // this function adds tracks to the playlist
+    // if the track's already in the playlist, it'll remove it
     addTrackToPlayListDo(fileName) {
         let mPL = this.playList;
         let index = mPL.findIndex(t=>t===fileName);
@@ -106,12 +108,10 @@ class AudioPlayer {
         // is this the first track to be added to the playlist?
         let playTrack = !mPL.length && this.autoPlay ? true : false;
         mPL.push(fileName);
-        // add the file to the div
+        // add the file to the playlist div
         this.addTrackToUI(fileName);
 
-        if (playTrack) {
-            this.playNext();
-        };
+        playTrack && this.playNext();
     }
 
     addTrackToPlayList(folder,trackName) {
@@ -285,6 +285,8 @@ class AudioPlayer {
         pL.forEach((fileName)=> {
             this.addTrackToUI(fileName);
         });
+
+        this.currentlyPlayingIndex=-1;
 
         this.playNext();
     }
