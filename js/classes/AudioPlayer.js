@@ -264,12 +264,13 @@ class AudioPlayer {
 
         let musicList = [...vars.App.musicList];
         if (searchString) {
-            musicList = musicList.filter(n=>n.folder.includes(searchString));
+            searchString = searchString.toLowerCase();
+            musicList = musicList.filter(n=>n.folder.toLowerCase().includes(searchString));
         };
 
         if (this.includeTracksWhenSearching) {
             debugger;
-        }
+        };
         this.buildMusicList(musicList);
     }
 
