@@ -36,7 +36,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `1.99.14`,
+    version: `1.99.15`,
 
     videoFolder: './assets/musicVideos',
 

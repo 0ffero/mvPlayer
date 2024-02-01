@@ -96,11 +96,11 @@ class AudioPlayer {
         let mPL = this.playList;
         let index = mPL.findIndex(t=>t===fileName);
         if (index>-1) { // file's already in the playlist. remove it
-            mPL.splice(index,1);
+            this.removeTrackFromPlayList(fileName,index);
             // find the div and remove it
             this.removeTrackFromUI(fileName);
             return;
-        }
+        };
 
         // file wasnt found, add it to play list
         // is this the first track to be added to the playlist?
@@ -242,6 +242,15 @@ class AudioPlayer {
 
     pause(pause=true) {
         pause ? this.audioPlayer.pause() : this.audioPlayer.play();
+    }
+
+    // when removing the track from the playlist
+    // we have to update the current playing index
+    // if this filename comes before currently playing
+    removeTrackFromPlayList(fileName,index) {
+        let mPL = this.playList;
+        index < this.currentlyPlayingIndex && this.currentlyPlayingIndex--;
+        mPL.splice(index,1);
     }
 
     removeTrackFromUI(fileName) {
