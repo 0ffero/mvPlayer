@@ -45,7 +45,7 @@ chdir("../assets/musicVideos");
    * Change This To Wherever YT-DLP is *
    *************************************
 */
-$dlp = "C:/Users/GATEWAY/AppData/Local/Programs/Python/Python312/Scripts/yt-dlp.exe";
+$dlp = "C:/windows/system32/yt-dlp.exe";
 if (!is_file($dlp)) {
     $op = ['ERROR'=>'Unable to find yt-dlp executable. Edit it in downloadYT.php'];
     echo json_encode($op);

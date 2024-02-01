@@ -12,6 +12,7 @@ class AudioPlayer {
         this.shuffling = false;
         this.currentlyPlayingIndex = -1;
         this.highlightedTrack = '';
+        this.includeTracksWhenSearching = false;
 
         // auto play var controls what happens when
         // the first track is added to the playlist
@@ -139,10 +140,11 @@ class AudioPlayer {
         aP.autoPlayButton.className = aP.autoPlay ? 'autoplayOn' : 'autoplayOff';
     }
 
-    buildMusicList() {
+    buildMusicList(musicList) {
         let gID = this.gID;
 
-        let mL = this.musicList = [...vars.App.musicList];
+        let mL = this.musicList = musicList ? musicList : [...vars.App.musicList];
+        vars.musicHTML='';
         mL.forEach((t)=> {
             let fName = t.folder;
             let folderName = fName.replaceAll('\\','\\\\').replaceAll('\'','\\\'');
@@ -255,6 +257,20 @@ class AudioPlayer {
 
     removeTrackFromUI(fileName) {
         this.getPlaylistDiv(fileName).remove();
+    }
+
+    search(searchDiv) {
+        let searchString = searchDiv.value;
+
+        let musicList = [...vars.App.musicList];
+        if (searchString) {
+            musicList = musicList.filter(n=>n.folder.includes(searchString));
+        };
+
+        if (this.includeTracksWhenSearching) {
+            debugger;
+        }
+        this.buildMusicList(musicList);
     }
 
     showMusicContainer(show) { // we are calling this from inside the div! so "this" is actually the div, not the class!

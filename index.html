@@ -141,6 +141,7 @@
         <div id="musicContainer" class="hidden">
             <div class="mC_Spacer" onclick="vars.UI.musicListClass.musicContainer.show(false)">&nbsp;</div>
             <div id="mC_Background">
+                <div id="searchBar"><input id="searchMusic" type="text" placeholder="search" onkeyup="vars.UI.musicListClass.search(this)"></div>
                 <div id="mC_FolderList"></div>
                 <div id="mC_SelectedTracks">
                     <div id="audioContainer"><div id="audioPrevious" class="clickable"><i class="fa-solid fa-backward"></i></div><div id="audioNext" class="clickable"><i class="fa-solid fa-forward"></i></div><audio id="audioPlayer" controls></audio></div>

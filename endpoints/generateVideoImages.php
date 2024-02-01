@@ -45,8 +45,10 @@ function joinImagesAndExtrude($imageDir) {
 
         // EXTRUDE - USES NODEJS - so if it stops working itll be because the Path env var isnt set
         //              Add it to the Path environment variable (ie Environment Variables > Path > NEW = c:\path\to\nodeexefile)
+        //              MAKE SURE YOU RESTART APACHE! To pick up the new env vars
         // as the atlas was created we now have to extrude it
         $extrudeCommand = 'node ' . $extrudeEXE . ' --tileWidth ' . $iImageWidth . ' --tileHeight ' . $iImageHeight . ' -e 0 -i ' . $opFile . ' -o ' . $extrudeImage;
+        $saveData['extrudeCommand'] = $extrudeCommand;
 
         shell_exec($extrudeCommand);
 
