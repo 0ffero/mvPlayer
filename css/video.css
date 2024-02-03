@@ -213,16 +213,3 @@
     width: 100px;
     z-index: 95;
 }
-
-#searchBar {
-    background-color: #009485;
-    display: flex;
-    left: 10px;
-    position: relative;
-    padding: 10px;
-}
-
-#searchMusic {
-    font-size: 14px;
-    padding: 5px;
-}

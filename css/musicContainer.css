@@ -182,3 +182,27 @@
 .highlighted {
     color: #ffffff;
 }
+
+#includeTracks {
+    align-items: center;
+    display: flex;
+    margin: 0 5px 0 15px;
+}
+
+#searchBar {
+    background-color: #009485;
+    display: flex;
+    left: 10px;
+    position: relative;
+    padding: 10px;
+}
+
+#searchMusic {
+    font-size: 14px;
+    padding: 5px;
+}
+
+/* #chk_tracks:checked {
+    background-color: #009485;
+    color: #ff9100;
+} */

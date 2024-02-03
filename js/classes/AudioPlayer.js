@@ -14,6 +14,9 @@ class AudioPlayer {
         this.highlightedTrack = '';
         this.includeTracksWhenSearching = false;
 
+        this.minimumLengthBeforeTrackSearch = 4; // if the search tracks box is checked, this will limit the needed characters before search eg 'gre' will only search folders. 'gree' will thn search folders and tracknames
+        this.quickTracks = false;
+
         // auto play var controls what happens when
         // the first track is added to the playlist
         // if auto play is true:
@@ -70,6 +73,8 @@ class AudioPlayer {
         
         this.buildMusicList();
 
+        this.searchTracksInput = gID('chk_tracks');
+
         switch (vars.App.recent) {
             case 'video':
                 mC.show(false);
@@ -84,6 +89,14 @@ class AudioPlayer {
                 return;
             break;
         };
+
+
+        // now that we have some time we can stringify the track lists (for quicker searching)
+        let mL = this.musicList;
+        mL.forEach((f)=> { mL.tracksString= f.tracks.join('±'); });
+        this.quickTracks = true;
+
+
     }
 
     addAlbumToPlaylist(div,folderName) {
@@ -161,7 +174,7 @@ class AudioPlayer {
 
         let mCF = this.folderList = gID('mC_FolderList');
         mCF.innerHTML = vars.musicHTML;
-        mCF.style.height = `${window.innerHeight - 91}px`;
+        mCF.style.height = `${window.innerHeight - 169}px`;
     }
 
     emptyPlaylist() {
@@ -268,7 +281,15 @@ class AudioPlayer {
             musicList = musicList.filter(n=>n.folder.toLowerCase().includes(searchString));
         };
 
-        if (this.includeTracksWhenSearching) {
+        if (this.searchTracksInput.checked && searchString.length>=this.minimumLengthBeforeTrackSearch) {
+            if (!this.quickTracks) {
+                setTimeout(()=> {
+                    this.search(searchDiv);
+                },100);
+                return;
+            };
+
+            // search the quicktracks
             debugger;
         };
         this.buildMusicList(musicList);
