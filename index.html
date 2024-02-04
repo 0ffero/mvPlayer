@@ -149,14 +149,22 @@
                 <div id="mC_SelectedTracks">
                     <div id="audioContainer">
                         <div id="audioPrevious" class="clickable"><i class="fa-solid fa-backward"></i></div>
+                        <audio id="audioPlayer" controls></audio>
                         <div id="audioNext" class="clickable"><i class="fa-solid fa-forward"></i></div>
-                        <audio id="audioPlayer" controls></audio></div>
+                    </div>
                     <div id="playlistHeader">
                         <div id="sTHeader">Play List</div><div id="clearPlaylist"><div id="autoplay"><i class="fa-solid fa-car"></i><i class="fa-solid fa-play"></div></i><i class="fa-solid fa-shuffle" onclick="vars.UI.musicListClass.shufflePlaylist()"></i><i class="fa-solid fa-trash" onclick="vars.UI.musicListClass.emptyPlaylist()"></i></div>
                     </div>
                     <div id="sTList"></div>
                 </div>
             </div>
+        </div>
+
+        <div id="loadingScreen">
+            <div id="lSheading" class="lSalphaZero">Music Video Player</div>
+            <div id="lSversion" class="lSalphaZero">version text</div>
+            <div id="lSpleaseWait" class="lSalphaZero">Loading... please wait</div>
+            <div id="lSego" class="lSalphaZero">created by offero04</div>
         </div>
 
     </body>

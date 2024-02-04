@@ -92,10 +92,13 @@ class AudioPlayer {
 
 
         // now that we have some time we can stringify the track lists (for quicker searching)
+        this.quickList = '';
         let mL = this.musicList;
-        mL.forEach((f)=> { mL.tracksString= f.tracks.join('±'); });
+        mL.forEach((f)=> {
+            let tracks = f.tracks.join('±');
+            this.quickList += `${f.folder}:${tracks}¤`;
+        });
         this.quickTracks = true;
-
 
     }
 
@@ -290,7 +293,28 @@ class AudioPlayer {
             };
 
             // search the quicktracks
+            let quickArray = this.quickList.split('¤');
+            let found = [];
+            quickArray.forEach((aJ)=> {
+                let folderAndTracks = aJ.split(':');
+                if (folderAndTracks.length!==2) { return; };
+                let tracks = folderAndTracks[1];
+                if (!tracks.toLowerCase().includes(searchString)) return;
+
+                // a track was found with the search string
+                let tA = tracks.split('±');
+                let indexes = [];
+                tA.forEach((t,i)=> {
+                    if (t.toLowerCase().includes(searchString)) {
+                        indexes.push(i);
+                    };
+                });
+                found.push({folder: folderAndTracks[0], tracks: tA, indexes: indexes });
+            });
+
+            console.log(found);
             debugger;
+            
         };
         this.buildMusicList(musicList);
     }

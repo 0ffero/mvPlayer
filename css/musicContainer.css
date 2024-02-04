@@ -104,6 +104,7 @@
     transition: 333ms;
 
     cursor: pointer;
+    width: 100px;
 }
 
 .addAlbum:hover {
@@ -129,6 +130,7 @@
     color: #aaf7ff;
     cursor: pointer;
     padding: 5px 30px;
+    width: 100%;
 }
 
 .trackName {
@@ -138,10 +140,10 @@
 }
 
 #audioContainer {
+    align-items: center;
     display: flex;
     flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
 }
 
 #audioPlayer {

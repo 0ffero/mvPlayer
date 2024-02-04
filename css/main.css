@@ -183,3 +183,80 @@ a:hover { color: deepskyblue; }
 .clickable {
     cursor: pointer;
 }
+
+
+
+
+
+
+/* Loading Screen CSS */
+#loadingScreen {
+    align-items: center;
+    background-color: #111111;
+    color: #009485;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    height: 100vh;
+    justify-content: center;
+    left: 0px;
+    padding: 10px;
+    position: fixed;
+    top: 0px;
+    width: 100vw;
+}
+
+#lSego {
+    transition: 1s;
+
+    font-size: 18px;
+    position: relative;
+    top: 0;
+}
+
+#lSheading {
+    transition: 2s;
+    
+    font-size: 32px;
+    font-weight: bold;
+    position: relative;
+    top: 0;
+}
+
+#lSversion {
+    transition: 2s;
+
+    color: #ff9100;
+
+    font-size: 12px;
+    left: 0;
+    position: relative;
+    top: 0;
+}
+
+.lSalphaZero {
+    transition: 1s;
+    opacity: 0;
+}
+
+.lSversionSlideIn {
+    left: 160px !important;
+}
+
+#lSpleaseWait {
+    transition: 2s;
+
+    color: yellow;
+
+    font-size: 24px;
+    position: relative;
+}
+
+.lSslideDown {
+    top: 3vh !important;
+}
+
+.lSslideUp {
+    top: -20vh !important;
+}
+/* END OF Loading Screen CSS */

@@ -36,7 +36,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `1.99.16`,
+    version: `1.99.18`,
 
     videoFolder: './assets/musicVideos',
 
@@ -47,6 +47,8 @@ var vars = {
 
         
         let fV = vars.files;
+        fV.listLoadCount++;
+
         fV.getFiles('getFiles.php',fV.dealWithResponseFromGetFiles);
         fV.getAllLyrics();
         fV.getMusic();
@@ -67,11 +69,14 @@ var vars = {
     files: {
         endpoint: 'endpoints/',
         filteredForSearch: [],
+        listLoadCount: 0,
         missingImages: [],
         musicVideoArray: [],
         overwriteLyrics: false,
 
         dealWithGetAllMusic: (rs)=> {
+            vars.UI.hideLoadingScreen();
+
             let mL = JSON.parse(rs);
             if (mL['ERROR']) {
                 if (mL['ERROR']==='No Music') {
@@ -135,6 +140,9 @@ var vars = {
             if (!l.length) { vars.UI.showWarningPopUp(true, `No lyrics found. Make sure WAMP is running on the gateway`) };
         },
         dealWithResponseFromGetFiles: (rs)=> {
+            let UI = vars.UI;
+            UI.hideLoadingScreen();
+            
             let aV = vars.App;
             let fV = vars.files;
 
@@ -167,7 +175,9 @@ var vars = {
                 fV.generateMusicVideoImages();
             };
             vars.DEBUG && console.groupEnd();
-            vars.UI.init();
+            
+            UI.init();
+            
         },
         dealWithResponseFromImageGenerator: (rs)=> {
             rs = JSON.parse(rs);
@@ -298,6 +308,8 @@ var vars = {
 
         getMusic: ()=> {
             let fV = vars.files;
+
+            fV.listLoadCount++;
 
             let url = 'getAllMusic.php';
             let callback = fV.dealWithGetAllMusic;
@@ -1372,6 +1384,7 @@ var vars = {
         intervals: {
             floatingPlayButton: null,
         },
+        loadingScreenHideDelay: 2000, // delay in ms before hiding the loading screen (if loads are too fast the loading screen hardly shows)
         musicListClass: null,
         scrollLyrics: false,
         scrollTotalDistance: 0,
@@ -1379,6 +1392,8 @@ var vars = {
         views: ['list','table','images-s','images-l'],
 
         init: ()=> {
+            // start the loading screen
+            vars.UI.loadingScreenStart();
             // remove hidden/deleted videos
             vars.App.options.ignore.forEach((mv)=> {
                 vars.files.removeMusicVideoFromList(mv);
@@ -1582,6 +1597,13 @@ var vars = {
             vars.UI.checkAll(null,true);
         },
 
+        destroyLoadingScreen: (timeout=0)=> {
+            setTimeout(()=> {
+                let lS = vars.UI.getElementByID('loadingScreen');
+                lS.remove();
+            },timeout)
+        },
+
         getElementByID(id) {
             if (!id) return false;
 
@@ -1601,6 +1623,27 @@ var vars = {
 
         getWarningPopUp: ()=> {
             return vars.UI.getElementByID("warningPopUp");
+        },
+
+        hideLoadingScreen: ()=> {
+            let fV = vars.files;
+            fV.listLoadCount--;
+            if (fV.listLoadCount) return;
+
+            let delayMultiplier = 1.05;
+            let alphaZeroDuration = 1000*delayMultiplier;
+
+            if (vars.UI.loadingScreenHideDelay) {
+                setTimeout(()=> {
+                    vars.UI.getElementByID('loadingScreen').className='lSalphaZero';
+                    vars.UI.destroyLoadingScreen(alphaZeroDuration);
+                },vars.UI.loadingScreenHideDelay);
+                return;
+            };
+
+            vars.UI.getElementByID('loadingScreen').className='lSalphaZero'; // lsAlpha transition duration is set in css (currently 1s)
+            // so this function will delay for that long
+            vars.UI.destroyLoadingScreen(alphaZeroDuration);
         },
 
         highlightGenres: (genres)=> {
@@ -1640,6 +1683,17 @@ var vars = {
                     vars.App.addRemoveMV(mvName,extension,true);
                 };
             };
+        },
+
+        loadingScreenStart: ()=> {
+            let gID = vars.UI.getElementByID;
+
+            gID('lSheading').className='lSslideUp';
+            let lSV = gID('lSversion');
+            lSV.innerHTML = `version: ${vars.version}`;
+            lSV.className='lSslideUp lSversionSlideIn';
+            gID('lSpleaseWait').className='';
+            gID('lSego').className='lSslideDown';
         },
 
         moveMusicVideoImageBackIntoMVI: ()=> {
