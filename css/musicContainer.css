@@ -204,7 +204,6 @@
     padding: 5px;
 }
 
-/* #chk_tracks:checked {
-    background-color: #009485;
-    color: #ff9100;
-} */
+.searchHighlighted {
+    color: yellow;
+}

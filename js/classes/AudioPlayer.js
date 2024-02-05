@@ -166,10 +166,14 @@ class AudioPlayer {
             let folderName = fName.replaceAll('\\','\\\\').replaceAll('\'','\\\'');
             let tracks = t.tracks;
 
-            vars.musicHTML += `<div><div class="folderNameHeader"><div class="addAlbum" onclick="vars.UI.musicListClass.addAlbumToPlaylist(this,'${folderName}')">[ADD ALL]</div><div class="folderName" onclick="vars.UI.showFolderContents(this, '${folderName}')">${fName}</div></div><div class="trackcontainer hidden">`;
-            tracks.forEach((t)=> {
-                let tClean = t.replaceAll('\'','\\\'');
-                vars.musicHTML += `<div class="trackName" onclick="vars.UI.musicListClass.addTrackToPlayList('${folderName}','${tClean}')">${t}</div>`;
+            let hidden = t.indexes ? '' : ' hidden';
+            let indexes = t.indexes ? t.indexes : [];
+            
+            vars.musicHTML += `<div><div class="folderNameHeader"><div class="addAlbum" onclick="vars.UI.musicListClass.addAlbumToPlaylist(this,'${folderName}')">[ADD ALL]</div><div class="folderName" onclick="vars.UI.showFolderContents(this, '${folderName}')">${fName}</div></div><div class="trackcontainer${hidden}">`;
+            tracks.forEach((tName,i)=> {
+                let highlighted  = indexes.includes(i) ? ' searchHighlighted' : '';
+                let tClean = tName.replaceAll('\'','\\\'');
+                vars.musicHTML += `<div class="trackName${highlighted}" onclick="vars.UI.musicListClass.addTrackToPlayList('${folderName}','${tClean}')">${tName}</div>`;
             });
             vars.musicHTML += `</div></div>`;
         });
@@ -224,6 +228,14 @@ class AudioPlayer {
 
         this.currentlyPlayingIndex = clamp(this.currentlyPlayingIndex-2,-1, this.playList.length-1);  // we remove two from this as we use play next
         this.playNext();
+    }
+
+    includeTracks() {
+        let gID = vars.UI.getElementByID;
+        let searchDiv = gID('searchMusic');
+        if (searchDiv.value.length < this.minimumLengthBeforeTrackSearch) return;
+
+        this.search(searchDiv);
     }
 
     playNext() {
@@ -284,6 +296,8 @@ class AudioPlayer {
             musicList = musicList.filter(n=>n.folder.toLowerCase().includes(searchString));
         };
 
+        let fullList = musicList;
+
         if (this.searchTracksInput.checked && searchString.length>=this.minimumLengthBeforeTrackSearch) {
             if (!this.quickTracks) {
                 setTimeout(()=> {
@@ -312,11 +326,12 @@ class AudioPlayer {
                 found.push({folder: folderAndTracks[0], tracks: tA, indexes: indexes });
             });
 
-            console.log(found);
-            debugger;
+            fullList = [...fullList,...found];
+            arraySortByKey(fullList,'folder');
             
         };
-        this.buildMusicList(musicList);
+
+        this.buildMusicList(fullList);
     }
 
     showMusicContainer(show) { // we are calling this from inside the div! so "this" is actually the div, not the class!

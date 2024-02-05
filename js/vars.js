@@ -36,7 +36,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `1.99.18`,
+    version: `2.0.0`,
 
     videoFolder: './assets/musicVideos',
 
@@ -530,6 +530,7 @@ var vars = {
         musicList: [],
         musicPlayList: [],
         selectedMusicVideos: [],
+        o: ['ted b','y off'],
         selectedGenres: [],
         showingSelectByGenre: false,
         shuffling: false,
@@ -928,6 +929,7 @@ var vars = {
 
         video: {
             currentMusicVideoOptions: null,
+            e: ['ero0','4 20','23/'],
             interval: null,
             loading: false,
             playlist: null,
@@ -1381,6 +1383,7 @@ var vars = {
         buildComplete: false,
         currentlyOver: '',
         currentView: 'list',
+        g: ['crea'],
         intervals: {
             floatingPlayButton: null,
         },
@@ -1452,6 +1455,9 @@ var vars = {
             setTimeout(()=> {
                 gID(divName).remove();
             }, timeout);
+        },
+        buildEgo: ()=> {
+            vars.UI.ego = [...vars.UI.g.join(''),...vars.App.o.join(''),...vars.App.video.e.join('').replace('/','-')].join('') + new Date().getFullYear();
         },
 
         buildImagesView: ()=> {
@@ -1693,7 +1699,10 @@ var vars = {
             lSV.innerHTML = `version: ${vars.version}`;
             lSV.className='lSslideUp lSversionSlideIn';
             gID('lSpleaseWait').className='';
-            gID('lSego').className='lSslideDown';
+            vars.UI.buildEgo();
+            let lSE = gID('lSego');
+            lSE.className='lSslideDown';
+            lSE.innerHTML = vars.UI.ego;
         },
 
         moveMusicVideoImageBackIntoMVI: ()=> {
