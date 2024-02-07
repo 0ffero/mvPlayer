@@ -235,7 +235,9 @@ var vars = {
             };
 
             // if we get here, everything was good, reload the lyrics
-            vars.DEBUG && console.log(`Lyrics were updated successfully.`);
+            let msg = `Lyrics were saved successfully.`;
+            vars.UI.showMessagePopUp(true, msg);
+            vars.DEBUG && console.log(msg);
             vars.files.getAllLyrics();
         },
         dealWithYTGet: (rs)=> {
@@ -1952,6 +1954,29 @@ var vars = {
                 // we are hiding the genre button, make sure the floating genres container is NOT visible
                 div.lastChild.className = 'genreButton hidden';
             };
+        },
+
+        showMessagePopUp: (show=true,msg)=> {
+            let gID = vars.UI.getElementByID;
+            let messagePopUp = gID('messagePopUp');
+
+            if (!show) {
+                messagePopUp.className = '';
+                return;
+            };
+
+            if (!msg) return;
+
+            messagePopUp.innerHTML = msg;
+            messagePopUp.className = 'messagePopUpSlide';
+            messagePopUp.timer=true;
+
+            let delay = 3000;
+            setTimeout(()=> {
+                if (!messagePopUp.timer) return;
+                delete(messagePopUp.timer);
+                messagePopUp.className = '';
+            }, delay);
         },
 
         showTable: (show=true)=> {

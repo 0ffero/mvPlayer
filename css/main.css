@@ -56,6 +56,44 @@ a:hover { color: deepskyblue; }
 }
 /* END OF HEADINGS */
 
+#messagePopUp {
+    transition: 1s;
+
+    align-items: center;
+    background-color: #2e303e;
+    border: 1px solid #009485;
+    display: flex;
+    height: 150px;
+    left: 50%;
+    margin: 0px auto;
+    opacity: 0;
+    padding: 30px;
+    position: fixed;
+    top: 100vh;
+    transform: translate(-50%, -50%);
+    z-index: 25;
+}
+
+.messagePopUpSlide {
+    transition: 1s;
+    opacity: 1 !important;
+    top: 50% !important;
+}
+
+#warningPopUp {
+    background-color: url("../assets/images/warningBG.png");
+    font-size: 20px;
+    height: 207px;
+    left: 100px;
+    line-height: 30px;
+    padding-left: 200px;
+    padding-top: 30px;
+    position: fixed;
+    top: 100px;
+    width: 777px;
+    z-index: 20;
+}
+
 #musicVideoImages {
     display: flex;
     flex-wrap: wrap;
