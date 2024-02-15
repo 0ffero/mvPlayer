@@ -1118,6 +1118,11 @@ var vars = {
                 vars.files.updateOptions(which,options.outroStart,sha);
             },
 
+            pauseSwitch: ()=> {
+                let v = vars.UI.getElementByID('video');
+                v.paused ? v.play() : v.pause();
+            },
+
             playNext: ()=> {
                 let aV = vars.App;
                 let gID = vars.UI.getElementByID;
@@ -1176,11 +1181,6 @@ var vars = {
                 let v = vars.UI.getElementByID('video');
                 let folder = vars.videoFolder;
                 v.src=`${folder}/${mvFile}`;
-            },
-
-            pauseSwitch: ()=> {
-                let v = vars.UI.getElementByID('video');
-                v.paused ? v.play() : v.pause();
             },
 
             scrollLyricsInit: ()=> {

@@ -202,8 +202,8 @@
 #lyricsScrollerShowButton {
     transition: 333ms;
 
-    border-radius: 5px;
     border: 1px solid #ff9100;
+    border-radius: 5px;
     color: white;
     cursor: pointer;
     font-weight: bold;
