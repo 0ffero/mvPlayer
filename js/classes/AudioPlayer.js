@@ -102,6 +102,15 @@ class AudioPlayer {
 
     }
 
+    addVisualiser() {
+        let canvas = this.gID('visCanvas');
+        if (!canvas) {
+            console.error(`Canvas (visCanvas) wasnt found!`)
+            return false;
+        };
+        this.visualiser = new AudioVisualiser({ audioPlayer: this.audioPlayer, canvas: canvas });
+    }
+
     addAlbumToPlaylist(div,folderName) {
         let els = div.parentElement.parentElement.getElementsByClassName('trackName');
         for (let t=0; t<els.length; t++) {
@@ -323,7 +332,7 @@ class AudioPlayer {
                         indexes.push(i);
                     };
                 });
-                found.push({folder: folderAndTracks[0], tracks: tA, indexes: indexes });
+                found.push({ folder: folderAndTracks[0], tracks: tA, indexes: indexes });
             });
 
             fullList = [...fullList,...found];
@@ -406,5 +415,12 @@ class AudioPlayer {
 
         let fileName = this.playList[currentSongIndex];
         this.getPlaylistDiv(fileName).className = 'playlistTrack';
+    }
+
+    updateVisualiser() {
+        let mLC = vars.UI.musicListClass;
+        requestAnimationFrame(mLC.updateVisualiser);
+
+        mLC.visualiser.update();
     }
 }

@@ -36,7 +36,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `2.0.1`,
+    version: `2.0.2`,
 
     videoFolder: './assets/musicVideos',
 
@@ -1536,7 +1536,9 @@ var vars = {
         },
 
         buildMusicList: ()=> {
-            vars.UI.musicListClass = new AudioPlayer();
+            let mLC = vars.UI.musicListClass = new AudioPlayer();
+            mLC.addVisualiser();
+            mLC.updateVisualiser();
         },
 
         buildTable: ()=> {
@@ -1956,7 +1958,7 @@ var vars = {
             };
         },
 
-        showMessagePopUp: (show=true,msg)=> {
+        showMessagePopUp: (show=true,msg,holdtime=3000)=> {
             let gID = vars.UI.getElementByID;
             let messagePopUp = gID('messagePopUp');
 
@@ -1971,7 +1973,7 @@ var vars = {
             messagePopUp.className = 'messagePopUpSlide';
             messagePopUp.timer=true;
 
-            let delay = 3000;
+            let delay = holdtime;
             setTimeout(()=> {
                 if (!messagePopUp.timer) return;
                 delete(messagePopUp.timer);

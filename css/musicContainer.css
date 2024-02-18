@@ -207,3 +207,9 @@
 .searchHighlighted {
     color: yellow;
 }
+
+#visContainer {
+    position: fixed;
+    right: 17px;
+    top: 9px;
+}
