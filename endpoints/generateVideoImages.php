@@ -5,7 +5,7 @@ function joinImagesAndExtrude($imageDir) {
         IT RESPONDS WITH THE SAVED DATA THATS HELD IN THE LOG
 
         REQUIREMENTS:
-            motage.exe (cli from imagemagick package) -> https://imagemagick.org/script/download.php ***See note below
+            montage.exe (cli from imagemagick package) -> https://imagemagick.org/script/download.php ***See note below
             tile-extruder (node) -> npm install --global tile-extruder
 
             *** NOTE: Montage stopped working randomly one day.

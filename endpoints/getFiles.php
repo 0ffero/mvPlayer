@@ -43,8 +43,17 @@ foreach($scan as $entry) {
             $genres = file_get_contents($genreFile);
         };
 
+        // load the RMS data for this file
+        $rmsFile = $drive . "RMS/$entry.json";
+        if (is_file($rmsFile)) {
+            $rmsData = file_get_contents($rmsFile);
+            $rmsData = json_decode($rmsData, true);
+        } else {
+            $rmsData = ['meanVolume'=>null,'maxVolume'=>null];
+        };
+
         // add the data to the files object
-        $files[]=["mvName"=>htmlentities($entry), "sha256"=>$sha, "hasImages"=>$hasImages, "options"=>json_decode($options), "genres"=>json_decode($genres)];
+        $files[]=["mvName"=>htmlentities($entry), "sha256"=>$sha, "hasImages"=>$hasImages, "options"=>json_decode($options), "genres"=>json_decode($genres), "rmsData"=>$rmsData ];
     };
 };
 sort($files);

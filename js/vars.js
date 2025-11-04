@@ -36,7 +36,9 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `2.0.2`,
+    version: `2.1.1`,
+
+    clickCount: 0,
 
     videoFolder: './assets/musicVideos',
 
@@ -57,8 +59,17 @@ var vars = {
         gID('version').innerHTML = `v${vars.version}`;
         
         let video = gID('video');
-        video.addEventListener('click', vars.App.video.pauseSwitch);
-        video.addEventListener('dblclick', vars.App.fullScreenVideo);
+        video.addEventListener('pointerup', ()=> {
+            vars.clickCount++;
+            setTimeout(()=> {
+                if (vars.clickCount===1) {
+                    vars.App.video.pauseSwitch();
+                } else if (vars.clickCount===2) {
+                    vars.App.fullScreenVideo();
+                };
+                vars.clickCount=0;
+            }, 250);
+        });
 
         vars.App.initScrollingLyricsDivAndButton();
         
@@ -731,6 +742,16 @@ var vars = {
             vars.files.saveGenre(sha,genre);
         },
 
+        getArtistAndSongFromSha: (sha)=> {
+            let data = vars.files.musicVideoObject.find(m=>m.sha256 === sha);
+            let mvData = data.mvName.split(/.?[-,–].?/);
+            mvData[mvData.length-1] = mvData[mvData.length-1].replace(/\.(mp4|mp3|ogg)$/i,'');
+            if (mvData.length===1) { // no artist found
+                mvData.unshift('');
+            };
+            return mvData;
+        },
+
         getMVExtension: (mv)=> {
             let extension = mv.split('.');
             return extension[extension.length-1];
@@ -777,6 +798,62 @@ var vars = {
             return options.options;
         },
 
+        /*
+            The following two functions now deal with the scroll in full screen mode only
+
+            getSongCurrentPositionAsPercentage shouldnt be called outside of the lyricsSetScroll function!
+        */
+        getSongCurrentPositionAsPercentage() {
+            let op = { percent: 0, ignored: true, multiplier: 0 };
+
+            let aV = vars.App.video;
+            let d = aV.getVideoDiv();
+            if (!d.src) return op;
+
+            let cT = d.currentTime;
+
+            let cVO = aV.currentMusicVideoOptions;
+            if (cT<cVO.introEnd) {
+                return op;
+            };
+
+            let actualRunLength = cVO.videoLength - cVO.introEnd - (cVO.videoLength - (cVO.outroStart || cVO.videoLength));
+
+            let positionInSong = cT-cVO.introEnd;
+
+            let percentage = (positionInSong/actualRunLength*100).toFixed(2)*1;
+            let mult = (percentage/100).toFixed(4)*1;
+
+            op.multiplier = mult;
+            op.percent = percentage;
+            op.ignored = false;
+            return op;
+        },
+
+        lyricsSetScroll() {
+            let mData = vars.App.getSongCurrentPositionAsPercentage();
+
+            let lS = document.getElementById('lyricsScroller');
+
+            let divFullHeight = lS.dataset.divfullheight*1;
+
+            let offsetY = divFullHeight * mData.multiplier;
+
+            let startY = lS.dataset.starty*1;
+
+            let top = startY - offsetY;
+
+            let height = startY-top;
+
+            let initialDivHeight = lS.dataset.initialdivheight*1;
+
+            lS.style.top = `${top-initialDivHeight}px`;
+            lS.style.height = `${height+initialDivHeight}px`;
+
+
+            return { offsetY: offsetY, startY: startY, top: top, height: height };
+        },
+
         removeSongFromNextList: (mvName)=> {
             let selected = vars.App.selectedMusicVideos;
             let i = selected.findIndex(m=>m[0]===mvName);
@@ -807,6 +884,16 @@ var vars = {
                 let searchString = `${mv.mvName} lyrics`;
                 window.open(`https://www.google.com/search?q=${searchString}`);
             };
+        },
+
+        searchForLyricsNew: ()=> {
+            let artist = document.getElementById('nLDartist').value.trim();
+            let song = document.getElementById('nLDsong').value.trim();
+
+            // send the info to the downloader
+            if (!song) return;
+
+            window.open(`http://offero04.io/Utils/lyricsDownloader/?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(song)}`);
         },
 
         showNextMVImage: (event,divDOM)=> {
@@ -870,6 +957,16 @@ var vars = {
                 vars.input.enableShuffleButton();
             },100);
             vars.DEBUG && console.log(`... shuffle rebuild completed!`);
+        },
+
+        swapArtistAndSong: ()=> {
+            let artist = vars.UI.getElementByID('nLDartist');
+            let song = vars.UI.getElementByID('nLDsong');
+            let a = artist.value;
+            let s = song.value;
+            artist.value = s;
+            song.value = a;
+            artist.focus();
         },
 
         update: ()=> {
@@ -941,6 +1038,8 @@ var vars = {
                 var v = vars.UI.getElementByID('video');
                 var vV = vars.App.video;
 
+                vV.addGainNode(v);
+
                 vV.interval = setInterval(()=> {
                     vars.App.update();
                 }, 250);
@@ -950,7 +1049,8 @@ var vars = {
 
                     vV.loading=false;
                     vars.DEBUG && console.log(`Music video loaded. Init Scroll Lyrics and skipping intro (if any)`);
-                    vV.scrollLyricsInit();
+                    vV.scrollLyricsInit(); // THIS NEEDS FIXING - TODO
+                    vV.setAudioGain();
 
                     let options = vV.currentMusicVideoOptions;
                     // check for fullscreen
@@ -966,6 +1066,38 @@ var vars = {
                     // skip to the intro end position
                     v.currentTime = options.introEnd;
                 };
+            },
+
+            
+            // TODO: Make sure this works and if it does build and enable the gain mode controls 20250327
+            addGainNode(video) {
+                video.context = new (window.AudioContext || window.webkitAudioContext)();
+                video.source = video.context.createMediaElementSource(video);
+                this.gainNode = video.context.createGain();
+                this.gainNode.connect(video.context.destination);
+                video.source.connect(this.gainNode);
+                this.gainNode.gain.value = 1; // Amplifies the audio signal
+
+                console.log('%cGain node added to video.\nAccess it via %cvars.App.video.gainNode.%c\nSet it\'s value using %cvars.App.video.gainNode.gain.value=[float]', 'color: #30ff30; font-weight: bold; font-size: 1.2em','color: default;','color: #30ff30; font-weight: bold; font-size: 1.2em','color: default;');
+
+            },
+
+            calculateGain(meanVolume, maxVolume, targetLoudness = -14) {
+                let gain = targetLoudness - meanVolume;
+                
+                // Convert dB to linear gain
+                let linearGain = Math.pow(10, gain / 20);
+                
+                // Prevent clipping by ensuring the highest peak after gain won't exceed 0dB
+                let maxPeakLinear = Math.pow(10, maxVolume / 20); // Convert max volume to linear
+                if (maxPeakLinear * linearGain > 1) { // 1 represents 0dB in linear scale
+                    linearGain = 1 / maxPeakLinear; // Adjust gain to avoid clipping
+                    // Convert back to dB for logging purposes
+                    gain = 20 * Math.log10(linearGain);
+                };
+                vars.DEBUG && console.log(`Gain set to ${gain.toFixed(2)} dB. Linear: ${linearGain.toFixed(2)}. Max Volume: ${maxVolume.toFixed(2)}`);
+
+                return linearGain;
             },
 
             generateOverrideImage: ()=> {
@@ -1015,6 +1147,25 @@ var vars = {
                 aV.selectedMusicVideos = [...aV.selectedMusicVideos,...mvList];
                 
                 vars.UI.buildList();
+            },
+
+            getGainForCurrentSong() {
+                let songName = vars.App.video.currentMusicVideoOptions.title;
+                let results = vars.files.musicVideoObject.filter(m=>m.mvName.startsWith(songName));
+                if (!results.length || results.length>1) {
+                    console.error(`%cUnable to find gain for ${songName}.`,'color: #ff3030; font-weight: bold;');
+                    return false;
+                };
+                return results[0].rmsData;
+            },
+
+            getGainForSong(songName) {
+                let results = vars.files.musicVideoObject.filter(m=>m.mvName.startsWith(songName));
+                if (!results.length || results.length>1) {
+                    console.error(`%cUnable to find gain for ${songName}.`,'color: #ff3030; font-weight: bold;');
+                    return false;
+                };
+                return results[0].rmsData || false;
             },
 
             getVideoDiv: ()=> {
@@ -1165,7 +1316,7 @@ var vars = {
                 // update the 2 lyrics containers (adds lyrics or empties if there are none)
                 gID('lyrics').value = lO ? lO.lyrics : '';
                 let lS = gID('lyricsScroller');
-                lS.innerHTML = lO ? `<pre>${lO.lyrics}</pre>` : '';
+                lS.innerHTML = lO ? `<pre>${(lO.lyrics).trim()}</pre>` : '';
                 if (lO) {
                     lS.style.right = `${0-lS.offsetWidth}px`;
                 };
@@ -1220,9 +1371,30 @@ var vars = {
                 divHeight = lS.offsetHeight;
                 lS.dataset.divfullheight=divHeight;
 
-                // resize the scroller div
-                lS.style.top=`${startY}px`;
-                lS.style.height=`${startHeight}px`;
+            },
+
+            setAudioGain: ()=> {
+                return; // I'm now setting all the rms to 1 as I'm re-encoding all the files to have a peak of -1db. This makes the gain node redundant for now.
+                let vV = vars.App.video;
+                let gainNode = vV.gainNode;
+
+                let rms = vV.getGainForCurrentSong();
+                if (!rms.maxVolume) {
+                    console.warn(`Unable to find gain for current song (reset back to 1).`);
+                    gainNode.gain.value = 1;
+                    return false;
+                };
+
+                if (rms.maxVolume==0) {
+                    console.log(`%cCurrent songs rms max is 0. No gain needed (reset back to 1).`,'color: #30ff30; font-weight: bold;');
+                    gainNode.gain.value = 1;
+                    return false;
+                };
+
+                // calculate the gain
+                let gain = vV.calculateGain(rms.meanVolume,rms.maxVolume, -3);
+                gainNode.gain.value = gain;
+                vars.DEBUG && console.log(`%cGain set to %c${gain}%c for %c${vV.currentMusicVideoOptions.title}`,'color: #ff8030; font-weight: bold;','color: #30ff30;','color: #ff8030; font-weight: bold;','color: yellow;');
 
             },
 
@@ -1413,7 +1585,7 @@ var vars = {
             lS.getYOffsetAndUpdate = (delta)=> {
                 if (!delta) return;
 
-                let paddingY = lS.dataset.paddingy*1; // unused at this point, just left here for reference
+                /* let paddingY = lS.dataset.paddingy*1; // unused at this point, just left here for reference
                 let startY = lS.dataset.starty*1;
                 let iDV = lS.dataset.initialdivheight*1;
                 let divFullHeight = lS.dataset.divfullheight*1;
@@ -1425,7 +1597,9 @@ var vars = {
                 //if (height>=divFullHeight) return;
                 
                 lS.style.top=`${offsetY}px`;
-                lS.style.height=`${height}px`;
+                lS.style.height=`${height}px`; */
+
+                vars.App.lyricsSetScroll();
             };
             
             vars.App.updateTableColumns(true);
@@ -1518,6 +1692,7 @@ var vars = {
                 html+=`<div id="list_${sha}" class="listItem" onclick="vars.input.click(event,this)">${mvName}</div>`;
                 html+=`<div class="genreList">${genres}</div>`;
                 html+='<div class="genreButton hidden" onclick="vars.UI.showFloatingGenresContainer(event,this,true,false)">GENRE</div>';
+                html+=`<div class="lyricsButton hidden" onclick="vars.UI.showNewLyricsContainer(true,'${sha}')"><i class="fa-brands fa-leanpub"></i></div>`;
                 html+='</div>';
 
                 linkArray.push([`checkbox_${id}`,mvName,extension,sha]);
@@ -1979,6 +2154,19 @@ var vars = {
                 delete(messagePopUp.timer);
                 messagePopUp.className = '';
             }, delay);
+        },
+
+        showNewLyricsContainer: (show=true, sha=null) => {
+            if (show && (!sha || sha.length!==64)) return 'When showing the new lyrics container, you must pass in a valid sha';
+
+            let nLC = vars.UI.getElementByID('newLyricsDownloaderContainer');
+            show ? nLC.classList.add('active') : nLC.classList.remove('active');
+            if (!show) return;
+
+            // we're showing the new lyrics container
+            let data = vars.App.getArtistAndSongFromSha(sha);
+            document.getElementById('nLDartist').value = data[0];
+            document.getElementById('nLDsong').value = data[1];
         },
 
         showTable: (show=true)=> {

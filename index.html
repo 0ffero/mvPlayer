@@ -155,7 +155,7 @@
                         <div id="audioNext" class="clickable"><i class="fa-solid fa-forward"></i></div>
                     </div>
                     <div id="playlistHeader">
-                        <div id="sTHeader">Play List</div><div id="clearPlaylist"><div id="autoplay"><i class="fa-solid fa-car"></i><i class="fa-solid fa-play"></div></i><i class="fa-solid fa-shuffle" onclick="vars.UI.musicListClass.shufflePlaylist()"></i><i class="fa-solid fa-trash" onclick="vars.UI.musicListClass.emptyPlaylist()"></i></div>
+                        <div id="sTHeader">Play List</div><div id="clearPlaylist"><div id="autoplay"><i class="fa-solid fa-car" title="Auto Play"></i><i class="fa-solid fa-play" title="Play / Pause"></div></i><i class="fa-solid fa-shuffle" onclick="vars.UI.musicListClass.shufflePlaylist()" title="Shuffle Tracks"></i><i class="fa-solid fa-trash" onclick="vars.UI.musicListClass.emptyPlaylist()" title="Remove All Tracks"></i></div>
                     </div>
                     <div id="sTList"></div>
                 </div>
@@ -167,6 +167,28 @@
             <div id="lSversion" class="lSalphaZero">version text</div>
             <div id="lSpleaseWait" class="lSalphaZero">Loading... please wait</div>
             <div id="lSego" class="lSalphaZero">created by offero04</div>
+        </div>
+
+        <div id="newLyricsDownloaderContainer">
+            <div id="newLyricsDownloader">
+                <div id="nLDheader">LYRICS DOWNLOADER</div>
+                <div id="nLDinfo">Search for lyrics for a music video</div>
+                <div id="nLDinputs">
+                    <div class="nLDRow">
+                        <div class="nLDText">Artist</div>
+                        <input id="nLDartist" type="text" placeholder="Artist">
+                    </div>
+                    <div style=" text-align: center; display: flex; align-items: center; width: 60px; transform: translateY(22px);" onclick="vars.App.swapArtistAndSong()"><i class="fa-solid fa-right-left"></i></div>
+                    <div class="nLDRow">
+                        <div class="nLDText">Song Name</div>
+                        <input id="nLDsong" type="text" placeholder="Song Title">
+                    </div>
+                </div>
+                <div id="nLDbuttons">
+                    <div class="button" onclick="vars.App.searchForLyricsNew()">SEARCH</div>
+                    <div class="button" onclick="vars.UI.showNewLyricsContainer(false)">CLOSE</div>
+                </div>
+            </div>
         </div>
 
         <div id="visContainer"><canvas id="visCanvas" width="520px" height="160px"></canvas></div>

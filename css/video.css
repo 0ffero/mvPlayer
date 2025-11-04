@@ -117,12 +117,23 @@
     font-weight: bold;
 }
 
+.button {
+    border: 1px solid white;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.75em;
+    margin: 20px 0px;
+    padding: 5px 30px;
+    text-align: center;
+}
+
 #comingUp {
     display: flex;
     height: 200px;
     border: 2px solid #ff9100;
     margin-top: 20px !important;
     min-width: 600px;
+    overflow: hidden;
     width: 800px;
 }
 #comingUp .c-u-header {
@@ -216,4 +227,55 @@
     visibility: hidden;
     width: 100px;
     z-index: 95;
+}
+
+#nLDinputs {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+}
+
+#nLDinputs input {
+    color: #04bd83;
+    background-color: #000000ee;
+    border: none;
+    font-family: Consolas;
+    font-size: 0.75em;
+    outline: none;
+    padding: 10px;
+    text-align: center;
+    width: 300px;
+}
+
+.nLDRow {
+    align-items: center;
+    color: #04bd83;
+    display: flex;
+    flex-direction: column;
+    row-gap: 10px;
+}
+
+#newLyricsDownloaderContainer {
+    align-items: center;
+    background-color: #000000ee;
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    left: 0;
+    position: absolute;
+    top: 0;
+    transform: translateX(200vw);
+    width: 100vw;
+}
+#newLyricsDownloaderContainer.active {
+    transition: 333ms;
+    transform: translateX(0);
+}
+
+#newLyricsDownloader {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    font-size: 2em;
+    row-gap: 16px;
 }

@@ -1,7 +1,7 @@
 window.addEventListener("selectstart", e => e.preventDefault());
 
 window.addEventListener('keyup', (e)=> {
-    if (vars.App.video.getVideoDiv().paused) return;
+    if (vars.App.video.getVideoDiv().paused && document.getElementById('audioPlayer').paused) return;
     if (e.code==='KeyN' && e.shiftKey) {
         vars.App.video.playNext();
         return;
@@ -9,7 +9,7 @@ window.addEventListener('keyup', (e)=> {
 
     if (e.code==='KeyF') {
         if (!document.fullscreenElement) {
-            vars.App.video.getVideoDiv().requestFullscreen();
+            vars.App.fullScreenVideo();
             return;
         };
     };
@@ -20,24 +20,53 @@ window.addEventListener('keyup', (e)=> {
     };
 
     if (e.code==='ArrowLeft' || e.code==='KeyJ') {
-        let v = vars.App.video.getVideoDiv();
-        let newTime = e.code==='ArrowLeft' ? 5 : 10;
-        newTime = v.currentTime - newTime;
-        if (newTime<0) newTime = 0;
-        v.currentTime = newTime;
-        return;
-    };
+        if (document.getElementById('audioPlayer').paused) { // audio player isnt doing anything, assume video player is active
+            let v = vars.App.video.getVideoDiv();
+            if (v.paused) return; // video player isnt doing anything, ignore the call
 
-    if (e.code==='ArrowRight' || e.code==='KeyL') {
-        let v = vars.App.video.getVideoDiv();
-        let newTime = e.code==='ArrowRight' ? 5 : 10;
-        newTime = v.currentTime + newTime;
-        if (newTime>v.duration) {
-            vars.App.video.playNext();
+            let newTime = e.code==='ArrowLeft' ? 5 : 10;
+            newTime = v.currentTime - newTime;
+            if (newTime<0) newTime = 0;
+            v.currentTime = newTime;
+            return;
+        } else {
+            let a = document.getElementById('audioPlayer');
+            if (a.paused) return; // audio player isnt doing anything, assume video player is active
+
+            let newTime = e.code==='ArrowLeft' ? 5 : 10;
+            newTime = a.currentTime - newTime;
+            if (newTime<0) newTime = 0;
+            a.currentTime = newTime;
             return;
         };
-        v.currentTime = newTime;
-        return;
+    };
+
+    if (e.code==='ArrowRight' || e.code==='KeyL' || e.key==='MediaTrackNext') {
+        if (e.key==='MediaTrackNext' && document.getElementById('audioPlayer').paused) { // audio player isnt doing anything, assume video player is active
+            let v = vars.App.video.getVideoDiv();
+            if (v.paused) return; // video player isnt doing anything, ignore the call
+
+            let newTime = e.code==='ArrowRight' ? 5 : 10;
+            newTime = v.currentTime + newTime;
+            if (newTime>v.duration || e.key==='MediaTrackNext') {
+                vars.App.video.playNext();
+                return;
+            };
+            v.currentTime = newTime;
+            return;
+        } else {
+            let a = document.getElementById('audioPlayer');
+            if (a.paused) return; // audio player isnt doing anything, assume video player is active
+
+            let newTime = e.code==='ArrowRight' ? 5 : 10;
+            newTime = a.currentTime + newTime;
+            if (newTime>a.duration || e.key==='MediaTrackNext') {
+                vars.UI.musicListClass.getNextTrack();
+                return;
+            };
+            a.currentTime = newTime;
+            return;
+        };
     };
 });
 
