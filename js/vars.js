@@ -1055,9 +1055,6 @@ var vars = {
                     let options = vV.currentMusicVideoOptions;
                     // check for fullscreen
                     if (document.fullscreenElement && document.fullscreenElement.id==='video') { // show the title pop up for the new music video
-                        // TODO This no longer works.. was only valid up to ~ Chrome 91.0
-                        // unfortunately it means using the fullscreen API - thats a big change!
-                        // an example can be seen here: https://dev.to/aws/html-video-with-fullscreen-chat-overlay-4jfl
                         vars.UI.showCurrentlyPlayingPopUp(true,vV.currentMusicVideoOptions.title);
                     };
 
@@ -1316,7 +1313,10 @@ var vars = {
                 // update the 2 lyrics containers (adds lyrics or empties if there are none)
                 gID('lyrics').value = lO ? lO.lyrics : '';
                 let lS = gID('lyricsScroller');
-                lS.innerHTML = lO ? `<pre>${(lO.lyrics).trim()}</pre>` : '';
+                lS.innerHTML = '';
+                setTimeout(()=> {
+                    lS.innerHTML = lO ? `<pre>${(lO.lyrics).trim()}</pre>` : '';
+                },0);
                 if (lO) {
                     lS.style.right = `${0-lS.offsetWidth}px`;
                 };
@@ -1335,7 +1335,7 @@ var vars = {
             },
 
             scrollLyricsInit: ()=> {
-                console.log(`%cScroll Lyrics Init`,'colour: #30FF30');
+                console.log(`%cScroll Lyrics Init`,'color: #30FF30');
                 let UI = vars.UI;
                 let lyricsDiv = UI.getElementByID('lyrics');
                 let divHeight = lyricsDiv.offsetHeight;
