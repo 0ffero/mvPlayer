@@ -36,7 +36,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `2.1.1`,
+    version: `2.2`,
 
     clickCount: 0,
 
@@ -561,10 +561,10 @@ var vars = {
 
         initScrollingLyricsDivAndButton: ()=> {
             let gID = vars.UI.getElementByID;
-
             let sSLB = gID('lyricsScrollerShowButton');
-            let lS = gID('lyricsScroller');
+
             sSLB.onclick = ()=> {
+                let lS = gID('lyricsScroller');
                 lS.show();
             };
             sSLB.onmouseenter = ()=> {
@@ -1312,14 +1312,30 @@ var vars = {
                 aV.video.currentMusicVideoOptions.lyrics = lO ? lO.lyrics : '';
                 // update the 2 lyrics containers (adds lyrics or empties if there are none)
                 gID('lyrics').value = lO ? lO.lyrics : '';
+                
+                // get the current lyrics scroller and destroy it
                 let lS = gID('lyricsScroller');
-                lS.innerHTML = '';
-                setTimeout(()=> {
-                    lS.innerHTML = lO ? `<pre>${(lO.lyrics).trim()}</pre>` : '';
-                },0);
-                if (lO) {
-                    lS.style.right = `${0-lS.offsetWidth}px`;
+                // create a new lyrics scroller to replace the old one
+                let div = document.createElement('div');
+                div.id = 'lyricsScroller';
+                div.dataset.paddingy = "100";
+                div.dataset.initialdivheight = "50";
+                div.dataset.divfullheight = "0";
+                div.dataset.starty = "0";
+                div.dataset.windowheight = "";
+                div.show = ()=> {
+                    div.style.right =  div.style.right === "0px" ? `-${div.offsetWidth}px` : "0px";
                 };
+
+                div.getYOffsetAndUpdate = (delta)=> {
+                    if (!delta) return;
+
+                    vars.App.lyricsSetScroll();
+                };
+                // add the lyrics to the new div
+                div.innerHTML = lO ? `<pre>${(lO.lyrics).trim()}</pre>` : '';
+                lS.replaceWith(div);
+
                 // if lO and fullScreen, show the button else hide it
                 let show = lO && aV.video.fullScreen ? true : false;
                 aV.video.hideLyricsScrollerAndButton(!show);
@@ -1584,20 +1600,6 @@ var vars = {
 
             lS.getYOffsetAndUpdate = (delta)=> {
                 if (!delta) return;
-
-                /* let paddingY = lS.dataset.paddingy*1; // unused at this point, just left here for reference
-                let startY = lS.dataset.starty*1;
-                let iDV = lS.dataset.initialdivheight*1;
-                let divFullHeight = lS.dataset.divfullheight*1;
-
-                let offsetY = startY - delta * (startY + divFullHeight - iDV);
-                
-                // now figure out the height of the div
-                let height = startY-offsetY;
-                //if (height>=divFullHeight) return;
-                
-                lS.style.top=`${offsetY}px`;
-                lS.style.height=`${height}px`; */
 
                 vars.App.lyricsSetScroll();
             };
