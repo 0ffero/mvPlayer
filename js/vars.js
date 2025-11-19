@@ -28,6 +28,14 @@ var vars = {
                     Required after yt-dlp downloads the video. This creates 4 images to be associated with music video
                     Place the exe into /bin folder
 
+
+
+                TECHNOLOGIES USED:
+                    https://lrclib.net/api/
+                    https://lrclib.net/docs/
+                        Examples:   search?q=Barenaked%20ladies (search for band)
+                                    get?artist_name=Barenaked%20ladies&track_name=One%20week (get lyrics for song)
+
                 
                 STILL TO DO:
                     🞂 Music videos with a single quote arent unhighlighting (only when clicking on the list item itself - the check box is fine)
@@ -36,9 +44,11 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `2.2`,
+    version: `2.3`,
 
     clickCount: 0,
+
+    lyricsOldOverride: true,
 
     videoFolder: './assets/musicVideos',
 
@@ -75,6 +85,9 @@ var vars = {
         
         // set up the floating genres container
         vars.UI.initFloatingGenres();
+
+        // set up the new lyrics downloader container
+        vars.LyricsDownloaderClass = new LyricsGetter();
     },
 
     files: {
@@ -149,6 +162,20 @@ var vars = {
             // make sure the lyrics were sent back properly
             let l = vars.App.lyricsArray.filter(l=>l.lyrics);
             if (!l.length) { vars.UI.showWarningPopUp(true, `No lyrics found. Make sure WAMP is running on the gateway`) };
+        },
+        dealWithOffsetUpdateResponse: (rs)=> {
+            if (rs.error) {
+                console.error(rs.error);
+                return;
+            };
+
+            // offset was updated successfully. Update lyrics new
+            let index = vars.App.lyricsNew.data.findIndex(m=>m.sha===rs.sha);
+            if (index===-1) {
+                console.error(`Unable to find sha ${rs.sha} in lyricsNew data array!`);
+                return;
+            };
+            vars.App.lyricsNew.data[index].mvOffset = rs.offset;
         },
         dealWithResponseFromGetFiles: (rs)=> {
             let UI = vars.UI;
@@ -553,6 +580,7 @@ var vars = {
         // ENTRY FUNCTION
         init: ()=> {
             // pre-inits
+            vars.App.getLyricsFromNewDownloader();
             vars.App.video.init();
 
             // inits
@@ -616,6 +644,44 @@ var vars = {
             vars.DEBUG && console.log(`Removed`);
 
             return 'removed';
+        },
+
+        convertTimedLyricsToArray: ()=> {
+            if (!vars.App.video.currentMusicVideoOptions.newLyrics) return;
+            let nL = vars.App.video.currentMusicVideoOptions.newLyrics;
+
+            let newLyricsTimes = [];
+            let regex = /\[([[0-9]{2}):([0-9]{2})\.([0-9]{2})\]./;
+
+            let timedLyrics = nL.timedLyrics;
+            if (!timedLyrics || !timedLyrics.length) return;
+
+            let tL = timedLyrics.split("\n");
+
+            if (tL.length===0 || tL.length===1) {
+                console.error(`Timed lyrics couldnt be split into lines!`);
+                debugger;
+                return;
+            };
+
+            // check for offset for timed lyrics!
+            let timedOffset = nL.timedOffset || 0;
+
+            tL.forEach(line => {
+                let matches = line.match(regex);
+
+                if (matches.length!==4) return;
+
+                let minutes = matches[1]*1;
+                let seconds = matches[2]*1;
+                let ms = matches[3]*1/100;
+
+                let showTime = minutes*60 + seconds + timedOffset + ms;
+
+                newLyricsTimes.push({ time: showTime, text: line.replace(matches[0],'')});
+            });
+
+            nL.timedLyricsArray = newLyricsTimes;
         },
 
         filterList: ()=> {
@@ -752,6 +818,23 @@ var vars = {
             return mvData;
         },
 
+        // This function deals with the new lyrics downloader
+        getLyricsFromNewDownloader: ()=> {
+            let fV = vars.files;
+            let url = '../junctions/lyricsDownloader/getAllSavedLyrics.php';
+            let callback = (rs)=> {
+                vars.App.lyricsNew = JSON.parse(rs);
+            };
+            fV.getFiles(url, callback);
+        },
+
+        getLyricsFromNewDownloaderBySha: (sha)=> {
+            let aV = vars.App;
+            if (!aV.lyricsNew) return null;
+            let lyricsData = aV.lyricsNew.data.find(m=>m.sha===sha);
+            return lyricsData || null;
+        },
+
         getMVExtension: (mv)=> {
             let extension = mv.split('.');
             return extension[extension.length-1];
@@ -803,7 +886,7 @@ var vars = {
 
             getSongCurrentPositionAsPercentage shouldnt be called outside of the lyricsSetScroll function!
         */
-        getSongCurrentPositionAsPercentage() {
+        getSongCurrentPositionAsPercentage:() => {
             let op = { percent: 0, ignored: true, multiplier: 0 };
 
             let aV = vars.App.video;
@@ -828,6 +911,58 @@ var vars = {
             op.percent = percentage;
             op.ignored = false;
             return op;
+        },
+
+        hasNewLyricsTypes: (sha, returnAvailable=false)=> {
+            let rs = { valid: false, downloaded: false, txt: false, timed: false, timedOffset: 0 };
+            if (sha.length!==64) return rs;
+            rs.valid = true;
+
+            let lData = vars.App.getLyricsFromNewDownloaderBySha(sha);
+            if (!lData) return rs;
+
+            rs.timedOffset = lData.mvOffset;
+
+            if (lData.mvData.plainLyrics) {
+                rs.downloaded = true
+                rs.txt = true;
+                returnAvailable && (rs.txtLyrics = lData.mvData.plainLyrics);
+            };
+
+            if (lData.mvData.syncedLyrics) {
+                rs.downloaded = true
+                rs.timed = true;
+                returnAvailable && (rs.timedLyrics = lData.mvData.syncedLyrics);
+            };
+
+            if (rs.valid && rs.downloaded) {
+                rs.duration = lData.mvData.duration;
+            };
+
+            return rs;
+        },
+
+        hasWhichLyricsTypes: (sha) => {
+            let rs = { valid: false, plain: false, synced: false, saved: false }; // , bigCacheFile: false
+
+            if (sha.length!==64) return rs;
+            rs.valid = true;
+
+            // check for NEW type saved lyrics
+            let lData = vars.App.getLyricsFromNewDownloaderBySha(sha);
+            if (lData) {
+                (lData.mvData && lData.mvData.plainLyrics) && (rs.plain = true);
+                (lData.mvData && lData.mvData.syncedLyrics) && (rs.synced = true);
+            };
+            
+            // check for OLD type saved lyrics
+            vars.App.findLyricsBySha(sha) && (rs.saved = true);
+
+            // it would be nice if we could check the cache for any possible lyrics.
+            // however, as the search can do up to two searches each (one for the band, the other for the song name), its not feasible to check for every possible combination here.
+            // Hence why it was removed from the rs var above
+
+            return rs;
         },
 
         lyricsSetScroll() {
@@ -875,6 +1010,15 @@ var vars = {
             selected.shift();
         },
 
+        saveTimedOffsetForCurrentVideo: ()=> {
+            let offsetValue = encodeURIComponent(document.getElementById('offsetValue').value*1);
+            let sha = encodeURIComponent(vars.App.video.currentMusicVideoOptions.sha256);
+            vars.UI.switchVisibilityOfOffsetContainer();
+
+            vars.files.getFilesPOST('../junctions/lyricsDownloader/saveTimedOffset.php', `sha=${sha}&offset=${offsetValue}`, vars.files.dealWithOffsetUpdateResponse);
+        },
+
+        // TODO: DEPRECATE THIS FUNCTION AND USE THE NEW DOWNLOADER INSTEAD
         searchForLyrics: ()=> {
             let options = vars.App.video.currentMusicVideoOptions;
             if (!options) return;
@@ -893,7 +1037,37 @@ var vars = {
             // send the info to the downloader
             if (!song) return;
 
-            window.open(`http://offero04.io/Utils/lyricsDownloader/?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(song)}`);
+            let sha = vars.LyricsDownloaderClass.sha;
+            let go = 'true';
+            let url = `http://offero04.gw/Utils/lyricsDownloader/?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(song)}&sha=${sha}&go=${go}`;
+            vars.App.showLyricsDownloader(true,url);
+            
+        },
+
+        setTimedLyricsOffset: (offset)=> {
+            vars.DEBUG && console.log(`📑 Setting %ctimed lyrics offset%c to ${offset}`, 'color: #30FF30;', 'color: default;');
+            vars.App.video.currentMusicVideoOptions.newLyrics.timedOffset = offset;
+
+            vars.App.convertTimedLyricsToArray();
+        },
+
+        showLyricsDownloader: (show=true,url="")=> {
+            let div = document.getElementById('downloaderContainer');
+            let iFrame = document.getElementById('lyricsDownloaderFrame');
+
+            if (show) {
+                document.body.style.overflowY='hidden';
+                div.classList.add('active');
+                iFrame.src = url;
+                return true;
+            };
+
+            document.body.style.overflowY='auto';
+            div.classList.remove('active');
+            iFrame.src = '';
+
+            vars.App.getLyricsFromNewDownloader();
+            return true;
         },
 
         showNextMVImage: (event,divDOM)=> {
@@ -1049,10 +1223,17 @@ var vars = {
 
                     vV.loading=false;
                     vars.DEBUG && console.log(`Music video loaded. Init Scroll Lyrics and skipping intro (if any)`);
-                    vV.scrollLyricsInit(); // THIS NEEDS FIXING - TODO
+                    vV.scrollLyricsInit();
                     vV.setAudioGain();
 
                     let options = vV.currentMusicVideoOptions;
+                    let timedLyricsButton = document.getElementById('timedLyrics');
+                    if (options.newLyrics && options.newLyrics.timed) {
+                        timedLyricsButton.style.display='block';
+                    } else {
+                        timedLyricsButton.style.display='none';
+                    };
+
                     // check for fullscreen
                     if (document.fullscreenElement && document.fullscreenElement.id==='video') { // show the title pop up for the new music video
                         vars.UI.showCurrentlyPlayingPopUp(true,vV.currentMusicVideoOptions.title);
@@ -1063,6 +1244,38 @@ var vars = {
                     // skip to the intro end position
                     v.currentTime = options.introEnd;
                 };
+
+                v.ontimeupdate = () => {
+                    let cT = v.currentTime;
+                    let cVO = vV.currentMusicVideoOptions;
+                    let newLyrics = cVO.newLyrics;
+                    if (!newLyrics || !newLyrics.timedLyricsArray) return;
+
+                    let tLA = newLyrics.timedLyricsArray;
+                    let index = tLA.findIndex(tD => tD.time>cT);
+                    
+                    let div = document.getElementById('timedLyricContainer');
+
+                    if ((index === tLA.length-1 && cT>tLA[index].time) || index===-1) {
+                        div.innerText = '';
+                        div.style.display='none';
+                        return;
+                    };
+
+                    let indexPrevious = index-1 > 0 ? index-1 : 0;
+
+                    if (cT>tLA[indexPrevious].time) {
+                        div.innerText = tLA[indexPrevious].text;
+                        if (tLA[indexPrevious].text.trim()!=='') {
+                            div.style.display='block';
+                        } else {
+                            div.style.display='none';
+                        };
+                    } else {
+                        div.innerText = '';
+                        div.style.display='none';
+                    };
+                }
             },
 
             
@@ -1309,13 +1522,24 @@ var vars = {
                 // grab the lyrics (if any)
                 let sha = aV.video.currentMusicVideoOptions.sha256;
                 let lO = aV.findLyricsBySha(sha);
+
+                // check for NEW LYRICS
+                aV.video.currentMusicVideoOptions.newLyrics = aV.hasNewLyricsTypes(sha,true);
+                aV.convertTimedLyricsToArray();
+                // if lO.lyrics is empty, set it to the new lyrics (if they exist)
+                console.log(`%cNew lyrics set up`, 'border: 2px dashed white; background-color: #000050; color: #ffffff; font-weight: bold; font-size: 14px; padding: 10px;');
+                if (vars.lyricsOldOverride && aV.video.currentMusicVideoOptions.newLyrics.txt) { // we are simply overwriting any old lyrics with the new ones
+                    lO = { lyrics: `\n\n\n\n\n\n\n\n${aV.video.currentMusicVideoOptions.newLyrics.txtLyrics}\n\n\n\n\n\n\n\n`, sha: sha };
+                };
+
                 aV.video.currentMusicVideoOptions.lyrics = lO ? lO.lyrics : '';
                 // update the 2 lyrics containers (adds lyrics or empties if there are none)
                 gID('lyrics').value = lO ? lO.lyrics : '';
                 
                 // get the current lyrics scroller and destroy it
                 let lS = gID('lyricsScroller');
-                // create a new lyrics scroller to replace the old one
+
+                // CREATE A NEW LYRICS SCROLLER TO REPLACE THE OLD ONE
                 let div = document.createElement('div');
                 div.id = 'lyricsScroller';
                 div.dataset.paddingy = "100";
@@ -1607,6 +1831,8 @@ var vars = {
             vars.App.updateTableColumns(true);
 
             vars.UI.buildList();
+
+            vars.UI.updateAllDivsWithHasLyrics();
         },
 
         initFloatingGenres: ()=> {
@@ -2163,12 +2389,20 @@ var vars = {
 
             let nLC = vars.UI.getElementByID('newLyricsDownloaderContainer');
             show ? nLC.classList.add('active') : nLC.classList.remove('active');
+            document.getElementById('container').style.display='flex';
             if (!show) return;
 
             // we're showing the new lyrics container
             let data = vars.App.getArtistAndSongFromSha(sha);
             document.getElementById('nLDartist').value = data[0];
             document.getElementById('nLDsong').value = data[1];
+            document.getElementById('container').style.display='none';
+
+            vars.LyricsDownloaderClass.resetFiltered();
+
+            vars.LyricsDownloaderClass.assignSha(sha);
+            vars.LyricsDownloaderClass.searchByName(data[0]);
+            vars.LyricsDownloaderClass.searchByName(data[1]);
         },
 
         showTable: (show=true)=> {
@@ -2256,6 +2490,54 @@ var vars = {
             }; 
             let type = UI.viewNames[index];
             div.innerHTML = `Current View: ${type}`;
+        },
+
+        switchVisibilityOfOffsetContainer: ()=> {
+            let oC = vars.UI.getElementByID('offsetTimedLyricsContainer');
+
+            oC.classList.contains('active') ? oC.classList.remove('active') : oC.classList.add('active');
+
+            let input1 = vars.UI.getElementByID('offsetSlider');
+            let input2 = vars.UI.getElementByID('offsetValue');
+            let textDiv = document.getElementById('offsetDisplay');
+
+            if (oC.className.includes('active')) {
+                let tO = vars.App.video.currentMusicVideoOptions.newLyrics.timedOffset;
+                input1.value = tO;
+                input2.value = tO;
+                textDiv.innerHTML = `Current Offset: ${tO} seconds`;
+                return;
+            };
+
+            input1.value = 0;
+            input2.value = 0;
+            textDiv.innerHTML = `Current Offset: 0 seconds`;
+
+        },
+
+        updateAllDivsWithHasLyrics: ()=> {
+            let allDivs = [...document.querySelectorAll('.genreList')];
+
+            allDivs.forEach(d=> {
+                let parent = d.parentElement;
+                let sha = parent.dataset.sha;
+
+                let rs = vars.App.hasWhichLyricsTypes(sha);
+                if (!rs.valid) return;
+                
+                let html = ``;
+                if (rs.saved) { // this holds the old type lyrics (copied and pasted from websites)
+                    html += `<span style="color: #ffff00;">[Saved]</span> `;
+                };
+                if (rs.plain) { // this is the lrc plain lyrics
+                    html += `<span style="color: #30ff30;">[LRC Plain]</span> `;
+                };
+                if (rs.synced) { // this is the lrc synced lyrics
+                    html += `<span style="color: #30ff30;">[LRC Synced]</span> `;
+                };
+
+                d.innerHTML += html;
+            });
         },
 
         updateTheComingUpList: ()=> {

@@ -68,6 +68,7 @@ a:hover { color: deepskyblue; }
     margin: 0px auto;
     opacity: 0;
     padding: 30px;
+    pointer-events: none;
     position: fixed;
     top: 100vh;
     transform: translate(-50%, -50%);

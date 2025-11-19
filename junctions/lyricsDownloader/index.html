@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lyrics Fetcher — Pretty UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+    <script src="LyricsFetcherClass.js"></script>
+    <script src="main.js" defer></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div style="width: 590px;">
+                <h1>Lyrics Fetcher</h1>
+                <p class="lead">Enter artist and track (album &amp; duration optional).</p>
+
+                <form id="lyricsForm">
+                    <label>Artist name</label>
+                    <input id="artist" type="text" placeholder="e.g. The Who" required value="The Who">
+
+                    <label>Track name</label>
+                    <input id="track" type="text" placeholder="e.g. My Generation" required value="My Generation">
+
+                    <div class="row">
+                        <div>
+                            <label>Album name (optional)</label>
+                            <input id="album" type="text" placeholder="Album name"
+                                value="Baldur's Gate 3 (Original Game Soundtrack)">
+                        </div>
+                        <div>
+                            <label>Duration (seconds, optional)</label>
+                            <input id="duration" type="number" min="0" placeholder="0" value="">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-top:6px; align-items:center">
+                        <button class="btn btn-primary" id="fetchBtn" type="submit">Get Lyrics</button>
+                        <button class="btn btn-ghost" id="clearBtn" type="button">Clear</button>
+                        <div id="loading" style="display:none">
+                            <div class="spinner" aria-hidden="true"></div>
+                        </div>
+                        <div>
+                            <div>
+                                <div class="title-sm">Tips</div>
+                                <div class="small">Use exact artist/track names for better results.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="meta">
+                        <span id="lastFetched" class="small"></span>
+                    </div>
+                </form>
+                <div style="display: none">
+                    <div class="title-sm">Recent searches</div>
+                    <div id="history" class="history"></div>
+                </div>
+            </div>
+
+            <div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px">
+                    <div>
+                        <div class="title-sm">Lyrics / Response</div>
+                        <div class="copyright">Raw response will appear below. Use the copy button to copy the text.
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center">
+                        <button class="btn btn-ghost" id="copyBtn">Show Source JSON</button>
+                        <button class="btn btn-ghost" id="openBtn">Open Request URL</button>
+                    </div>
+                </div>
+
+                <div id="preview" class="preview">No results yet — enter artist &amp; track and press <strong>Get Lyrics</strong>.</div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="jsonResponseContainer">
+        <div id="jrInnerContainer"><pre></pre></div>
+        <div id="jrCloseButton">X</div>
+    </div>
+</body>
+
+</html>

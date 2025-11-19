@@ -9,6 +9,7 @@
         <link rel="stylesheet" href="css/main.css">
         
         <link rel="stylesheet" href="css/list.css">
+        <link rel="stylesheet" href="css/lyricsGetter.css">
         <link rel="stylesheet" href="css/mainPageButtons.css">
         <link rel="stylesheet" href="css/musicContainer.css">
         <link rel="stylesheet" href="css/popup.css">
@@ -24,6 +25,7 @@
         <script src="js/vars.js"></script>
         <script src="js/classes/AudioPlayer.js"></script>
         <script src="js/classes/AudioVisualiser.js"></script>
+        <script src="js/classes/LyricsGetter.js"></script>
 
         <script defer src="js/init.js"></script>
     </head>
@@ -51,7 +53,7 @@
             </div>
 
             <div id="otherButtons">
-                <div class="button remove-selected" onclick="vars.UI.showDeletePopUp()">REMOVE SELECTED<br/><span class="remove-selected-icons">🗋🡆🗑</span></div>
+                <div class="button remove-selected" onclick="vars.UI.showDeletePopUp()" style="flex-direction: column;"><div>REMOVE SELECTED</div><div><span class="remove-selected-icons">🗋🡆🗑</span></div></div>
             </div>
         </div>
         <div id="viewBy" onclick="vars.UI.switchView(event,this);">Current View: List</div>
@@ -69,6 +71,7 @@
                         </div>
                         <div id="videoOptions">
                             <div id="intro" class="button" onclick="vars.App.video.introEndSet()">INTRO END</div>
+                            <div id="timedLyrics" class="button" onclick="vars.UI.switchVisibilityOfOffsetContainer();">TIMED LYRICS OFFSET</div>
                             <div id="outro" class="button" onclick="vars.App.video.outroStartSet()">OUTRO START</div>
                         </div>
                     </div>
@@ -90,6 +93,22 @@
                     <div id="videoNext" class="button" onclick="vars.App.video.playNext();">NEXT</div>
                     <div id="videoClose" class="button" onclick="vars.App.video.show(false);">CLOSE</div>
                 </div>
+                <div id="offsetTimedLyricsContainer">
+                    <div id="offsetTimedLyricsControls" style="display:flex; align-items:center; flex-direction:column; width:1000px;">
+                        <div style="display:flex; justify-content:center; align-items:center; width:100%;">
+                            <label for="offsetSlider">Offset (s):</label>
+                            <input id="offsetValue" type="number" min="-60" max="60" step="0.01" value="0" style="width:80px" oninput="document.getElementById('offsetSlider').value = this.value;" onchange="vars.App.setTimedLyricsOffset(parseFloat(this.value)||0);">
+                            <div id="offsetDisplay" style="min-width:60px;text-align:right;">0.00 s</div>
+                        </div>
+                        <div><input id="offsetSlider" type="range" min="-20" max="20" step="0.01" value="0" oninput="document.getElementById('offsetValue').value = this.value;" onchange="vars.App.setTimedLyricsOffset(parseFloat(this.value)||0);" style="width: 900px;"></div>
+                        <div>
+                            <button class="button" style="padding: 10px 60px; margin: 0;" onclick="vars.App.saveTimedOffsetForCurrentVideo();">
+                                APPLY
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="timedLyricContainer"></div>
             </div>
         </div>
 
@@ -184,11 +203,22 @@
                         <input id="nLDsong" type="text" placeholder="Song Title">
                     </div>
                 </div>
+                <div id="lyricsJsonContainer"></div>
                 <div id="nLDbuttons">
                     <div class="button" onclick="vars.App.searchForLyricsNew()">SEARCH</div>
                     <div class="button" onclick="vars.UI.showNewLyricsContainer(false)">CLOSE</div>
                 </div>
             </div>
+        </div>
+
+        <div id="cachedLyricsTextContainer">
+            <div id="cachedLyricsText"></div>
+            <button id="closeCachedLyricsText" onclick="vars.LyricsDownloaderClass.showCachedLyricsContainer(false)">CLOSE</button>
+        </div>
+
+        <div id="downloaderContainer">
+            <div id="downloadContainerClose" onclick="vars.App.showLyricsDownloader(false)">CLOSE</div>
+            <iframe id="lyricsDownloaderFrame" src=""></iframe>
         </div>
 
         <div id="visContainer"><canvas id="visCanvas" width="520px" height="160px"></canvas></div>
