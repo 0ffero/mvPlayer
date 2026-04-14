@@ -42,9 +42,9 @@ var vars = {
                     🞂 Highlight by genre currently doesnt highlight the image views
                     🞂 vars.UI.highlightMVImage isnt used anywhere. Can this be removed or was it to replace something?
     */
-    DEBUG: true,
+    DEBUG: false,
     appID: 'mvp',
-    version: `2.4`,
+    version: `2.41`,
 
     clickCount: 0,
 
