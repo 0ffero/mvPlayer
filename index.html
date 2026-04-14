@@ -100,7 +100,18 @@
                             <input id="offsetValue" type="number" min="-60" max="60" step="0.01" value="0" style="width:80px" oninput="document.getElementById('offsetSlider').value = this.value;" onchange="vars.App.setTimedLyricsOffset(parseFloat(this.value)||0);">
                             <div id="offsetDisplay" style="min-width:60px;text-align:right;">0.00 s</div>
                         </div>
-                        <div><input id="offsetSlider" type="range" min="-20" max="20" step="0.01" value="0" oninput="document.getElementById('offsetValue').value = this.value;" onchange="vars.App.setTimedLyricsOffset(parseFloat(this.value)||0);" style="width: 900px;"></div>
+                        <div style="display: flex;">
+                            <div>Advance</div>
+                            <input id="offsetSlider" type="range" min="-20" max="20" step="0.01" value="0" oninput="document.getElementById('offsetValue').value = this.value;" onchange="vars.App.setTimedLyricsOffset(parseFloat(this.value)||0);" style="width: 800px;">
+                            <div>Delay</div>
+                        </div>
+                        <div id="firstLryicsContainer">
+                            <div>First lyrics on file start at:</div>
+                            <div id="firstLyricsTime" data-starttime="7.32">7.32s</div>
+                            <div>
+                                <button id="setLyricsStart" onclick="vars.App.setLyricsStart()">Set Lyrics Start</button>
+                            </div>
+                        </div>
                         <div>
                             <button class="button" style="padding: 10px 60px; margin: 0;" onclick="vars.App.saveTimedOffsetForCurrentVideo();">
                                 APPLY

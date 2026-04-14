@@ -67,12 +67,12 @@ class LyricsGetter {
         this.searchKeys = [];
     }
 
-    searchByName(name, returnOnly = false) {
-        this.searchKeys.push(name);
-
+    searchByName() {
+        
         let container = document.getElementById('lyricsJsonContainer');
         container.innerHTML = ''; // clear previous results
-
+        
+        /* this.searchKeys.push(name);
         if (this.filtered.length) { // this can filter and already filtered list
             let newFiltered = this.filtered.filter(item => item.file_path.toLowerCase().includes(name.toLowerCase()));
             if (newFiltered.length) {
@@ -111,7 +111,7 @@ class LyricsGetter {
         
         if (!this.filtered.length) {;
             container.innerHTML = '<div class="lyricItem"><i>No results found in the cache file</i></div>';
-        };
+        }; */
         
         // are there lyrics already saved for this song? (ie the way I used to download them, via the search button then copying and pasting the result)
         container.innerHTML += `<div class="lyricItem"><div>Has Saved Lyrics (OLD VERSION)?</div><div>${this.hasSavedLyrics ? '<i class="fa-solid fa-square-check lyricsTrue"></i>' : '<i class="fa-solid fa-square-xmark lyricsFalse"></i>'}</div></div>`;

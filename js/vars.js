@@ -44,7 +44,7 @@ var vars = {
     */
     DEBUG: true,
     appID: 'mvp',
-    version: `2.3`,
+    version: `2.4`,
 
     clickCount: 0,
 
@@ -164,8 +164,10 @@ var vars = {
             if (!l.length) { vars.UI.showWarningPopUp(true, `No lyrics found. Make sure WAMP is running on the gateway`) };
         },
         dealWithOffsetUpdateResponse: (rs)=> {
+            rs = JSON.parse(rs);
             if (rs.error) {
                 console.error(rs.error);
+                vars.UI.showMessagePopUp(true, rs.error);
                 return;
             };
 
@@ -175,7 +177,9 @@ var vars = {
                 console.error(`Unable to find sha ${rs.sha} in lyricsNew data array!`);
                 return;
             };
-            vars.App.lyricsNew.data[index].mvOffset = rs.offset;
+            vars.App.lyricsNew.data[index].mvOffset = rs.mvOffset;
+
+            vars.UI.showMessagePopUp(true,'Offset Saved Successfully');
         },
         dealWithResponseFromGetFiles: (rs)=> {
             let UI = vars.UI;
@@ -667,7 +671,7 @@ var vars = {
             // check for offset for timed lyrics!
             let timedOffset = nL.timedOffset || 0;
 
-            tL.forEach(line => {
+            tL.forEach((line,i) => {
                 let matches = line.match(regex);
 
                 if (matches.length!==4) return;
@@ -676,7 +680,13 @@ var vars = {
                 let seconds = matches[2]*1;
                 let ms = matches[3]*1/100;
 
-                let showTime = minutes*60 + seconds + timedOffset + ms;
+                let showTime = (minutes*60 + seconds + timedOffset + ms).toFixed(2)*1;
+                
+                if (!i) {
+                    let offsetDiv = document.getElementById('firstLyricsTime');
+                    offsetDiv.dataset.starttime = showTime;
+                    offsetDiv.innerHTML = `${showTime}s`;
+                };
 
                 newLyricsTimes.push({ time: showTime, text: line.replace(matches[0],'')});
             });
@@ -1044,11 +1054,37 @@ var vars = {
             
         },
 
+        setLyricsStart: ()=> {
+            let aV = vars.App;
+            let vV = aV.video;
+            let d = vV.getVideoDiv();
+            let currentTime = d.currentTime;
+            let offsetDiv = document.getElementById('firstLyricsTime');
+            let firstDelay = offsetDiv.dataset.starttime;
+            let startTime = (currentTime - firstDelay*1).toFixed(2)*1;
+
+            vars.App.setTimedLyricsOffset(startTime);
+
+            let input1 = vars.UI.getElementByID('offsetSlider');
+            let input2 = vars.UI.getElementByID('offsetValue');
+            let textDiv = document.getElementById('offsetDisplay');
+
+            let tO = vars.App.video.currentMusicVideoOptions.newLyrics.timedOffset;
+            input1.value = tO;
+            input2.value = tO;
+            textDiv.innerHTML = `Current Offset: ${tO} seconds`;
+
+            vars.DEBUG && console.log(`📑 Setting %cfirst lyrics time%c to ${startTime} (current time: ${currentTime}, first delay: ${firstDelay})`, 'color: #30FF30;', 'color: default;');
+        },
+
         setTimedLyricsOffset: (offset)=> {
             vars.DEBUG && console.log(`📑 Setting %ctimed lyrics offset%c to ${offset}`, 'color: #30FF30;', 'color: default;');
-            vars.App.video.currentMusicVideoOptions.newLyrics.timedOffset = offset;
+            let aV = vars.App;
+            let vV = aV.video;
+            vV.currentMusicVideoOptions.newLyrics.timedOffset = offset;
 
-            vars.App.convertTimedLyricsToArray();
+            aV.convertTimedLyricsToArray();
+            vV.updateTimedLyrics();
         },
 
         showLyricsDownloader: (show=true,url="")=> {
@@ -1212,8 +1248,6 @@ var vars = {
                 var v = vars.UI.getElementByID('video');
                 var vV = vars.App.video;
 
-                vV.addGainNode(v);
-
                 vV.interval = setInterval(()=> {
                     vars.App.update();
                 }, 250);
@@ -1232,6 +1266,10 @@ var vars = {
                         timedLyricsButton.style.display='block';
                     } else {
                         timedLyricsButton.style.display='none';
+                        // hide the lyrics container as there are no timed lyrics
+                        let div = document.getElementById('timedLyricContainer');
+                        div.innerText = '';
+                        div.style.display='none';
                     };
 
                     // check for fullscreen
@@ -1246,50 +1284,8 @@ var vars = {
                 };
 
                 v.ontimeupdate = () => {
-                    let cT = v.currentTime;
-                    let cVO = vV.currentMusicVideoOptions;
-                    let newLyrics = cVO.newLyrics;
-                    if (!newLyrics || !newLyrics.timedLyricsArray) return;
-
-                    let tLA = newLyrics.timedLyricsArray;
-                    let index = tLA.findIndex(tD => tD.time>cT);
-                    
-                    let div = document.getElementById('timedLyricContainer');
-
-                    if ((index === tLA.length-1 && cT>tLA[index].time) || index===-1) {
-                        div.innerText = '';
-                        div.style.display='none';
-                        return;
-                    };
-
-                    let indexPrevious = index-1 > 0 ? index-1 : 0;
-
-                    if (cT>tLA[indexPrevious].time) {
-                        div.innerText = tLA[indexPrevious].text;
-                        if (tLA[indexPrevious].text.trim()!=='') {
-                            div.style.display='block';
-                        } else {
-                            div.style.display='none';
-                        };
-                    } else {
-                        div.innerText = '';
-                        div.style.display='none';
-                    };
+                    vV.updateTimedLyrics();
                 }
-            },
-
-            
-            // TODO: Make sure this works and if it does build and enable the gain mode controls 20250327
-            addGainNode(video) {
-                video.context = new (window.AudioContext || window.webkitAudioContext)();
-                video.source = video.context.createMediaElementSource(video);
-                this.gainNode = video.context.createGain();
-                this.gainNode.connect(video.context.destination);
-                video.source.connect(this.gainNode);
-                this.gainNode.gain.value = 1; // Amplifies the audio signal
-
-                console.log('%cGain node added to video.\nAccess it via %cvars.App.video.gainNode.%c\nSet it\'s value using %cvars.App.video.gainNode.gain.value=[float]', 'color: #30ff30; font-weight: bold; font-size: 1.2em','color: default;','color: #30ff30; font-weight: bold; font-size: 1.2em','color: default;');
-
             },
 
             calculateGain(meanVolume, maxVolume, targetLoudness = -14) {
@@ -1543,7 +1539,7 @@ var vars = {
                 let div = document.createElement('div');
                 div.id = 'lyricsScroller';
                 div.dataset.paddingy = "100";
-                div.dataset.initialdivheight = "50";
+                div.dataset.initialdivheight = "200"; // change this to  show more of the lyrics div at the start
                 div.dataset.divfullheight = "0";
                 div.dataset.starty = "0";
                 div.dataset.windowheight = "";
@@ -1656,6 +1652,41 @@ var vars = {
                 
 
                 vars.UI.getElementByID('video').pause();
+            },
+
+            updateTimedLyrics: ()=> {
+                var vV = vars.App.video;
+                var v = vV.getVideoDiv();
+                let cT = v.currentTime;
+
+                let cVO = vV.currentMusicVideoOptions;
+                let newLyrics = cVO.newLyrics;
+                if (!newLyrics || !newLyrics.timedLyricsArray) return;
+
+                let tLA = newLyrics.timedLyricsArray;
+                let index = tLA.findIndex(tD => tD.time>cT);
+                
+                let div = document.getElementById('timedLyricContainer');
+
+                if ((index === tLA.length-1 && cT>tLA[index].time) || index===-1) {
+                    div.innerText = '';
+                    div.style.display='none';
+                    return;
+                };
+
+                let indexPrevious = index-1 > 0 ? index-1 : 0;
+
+                if (cT>tLA[indexPrevious].time) {
+                    div.innerText = tLA[indexPrevious].text;
+                    if (tLA[indexPrevious].text.trim()!=='') {
+                        div.style.display='block';
+                    } else {
+                        div.style.display='none';
+                    };
+                } else {
+                    div.innerText = '';
+                    div.style.display='none';
+                };
             }
         }
     },
@@ -2401,8 +2432,7 @@ var vars = {
             vars.LyricsDownloaderClass.resetFiltered();
 
             vars.LyricsDownloaderClass.assignSha(sha);
-            vars.LyricsDownloaderClass.searchByName(data[0]);
-            vars.LyricsDownloaderClass.searchByName(data[1]);
+            vars.LyricsDownloaderClass.searchByName();
         },
 
         showTable: (show=true)=> {
@@ -2527,7 +2557,7 @@ var vars = {
                 
                 let html = ``;
                 if (rs.saved) { // this holds the old type lyrics (copied and pasted from websites)
-                    html += `<span style="color: #ffff00;">[Saved]</span> `;
+                    html += `<span style="color: #ffaa00;">[Saved]</span> `;
                 };
                 if (rs.plain) { // this is the lrc plain lyrics
                     html += `<span style="color: #30ff30;">[LRC Plain]</span> `;

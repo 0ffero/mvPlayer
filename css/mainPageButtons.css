@@ -60,6 +60,7 @@
     position: fixed;
     right: 5px;
     top: 0px;
+    z-index: 1;
 }
 #floatingPlayButtons {
     display: flex;
